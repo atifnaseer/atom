@@ -29,6 +29,7 @@ import {
 } from "@/components/app-shell/tenant-provider";
 import { TenantSwitcher } from "@/components/app-shell/tenant-switcher";
 import { UserNav } from "@/components/app-shell/user-nav";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -46,6 +47,7 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { BRAND_NAME } from "@/lib/brand";
 import { GLOBAL_TENANT } from "@/lib/tenant/context";
 
 type NavItem = {
@@ -167,14 +169,16 @@ function AppSidebar({
             <SidebarMenuButton
               size="lg"
               asChild
-              tooltip="Atom"
+              tooltip={BRAND_NAME}
               className="hover:bg-transparent active:bg-transparent"
             >
-              <Link href="/dashboard">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-                  A
-                </div>
-                <span className="text-lg font-bold">Atom</span>
+              <Link href="/dashboard" aria-label={BRAND_NAME}>
+                <span className="group-data-[collapsible=icon]:hidden">
+                  <BrandLogo className="h-8" />
+                </span>
+                <span className="hidden shrink-0 group-data-[collapsible=icon]:block">
+                  <BrandLogo variant="icon" />
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

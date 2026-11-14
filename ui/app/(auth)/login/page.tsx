@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { getRegistrationAvailability } from "@/lib/auth/registration";
+import { BrandLogo } from "@/components/brand-logo";
+import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Sign In" };
 
@@ -13,8 +15,9 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md rounded-lg border bg-background p-6 pb-10">
+        <BrandLogo className="mx-auto" />
         <h2 className="mt-5 text-center text-2xl font-bold leading-9 tracking-tight">
-          Atom
+          {BRAND_NAME}
         </h2>
         <p className="text-center font-semibold">Sign In</p>
 
@@ -40,7 +43,7 @@ function RegistrationPrompt({ enabled }: { enabled: boolean }) {
 
   return (
     <p className="mt-6 text-center text-sm text-muted-foreground">
-      New to Atom?{" "}
+      New to {BRAND_SHORT}?{" "}
       <Link className="font-medium text-foreground underline" href="/register">
         Create account
       </Link>

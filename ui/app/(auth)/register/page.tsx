@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/auth/signup-form";
+import { BrandLogo } from "@/components/brand-logo";
 import { getRegistrationAvailability } from "@/lib/auth/registration";
+import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Create Account" };
 
@@ -17,8 +19,9 @@ export default async function RegisterPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md rounded-lg border bg-background p-6 pb-10">
+        <BrandLogo className="mx-auto" />
         <h2 className="mt-5 text-center text-2xl font-bold leading-9 tracking-tight">
-          Atom
+          {BRAND_NAME}
         </h2>
         <p className="text-center font-semibold">Create account</p>
 

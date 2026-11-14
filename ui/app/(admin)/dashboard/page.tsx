@@ -1,5 +1,6 @@
 import { Activity, ShieldCheck, Users } from "lucide-react";
 import type { Metadata } from "next";
+import { BrandLogo } from "@/components/brand-logo";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { RelationshipPanel } from "@/components/relationships/relationship-panel";
 import {
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BRAND_SHORT } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -23,13 +25,14 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-6">
       <section className="grid gap-2">
+        <BrandLogo className="mb-2" />
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             Control plane overview
           </h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Operate Atom identity, roles, assignments, tenant boundaries, and
+          Operate {BRAND_SHORT} identity, roles, assignments, tenant boundaries, and
           authorization explainability from task-driven workflows.
         </p>
       </section>
