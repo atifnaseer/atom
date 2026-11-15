@@ -1,0 +1,308 @@
+"use client";
+
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
+import {
+  CircleOff,
+  CirclePlay,
+  Cpu,
+  ExternalLink,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import * as React from "react";
+import { StatusBadge } from "@/components/crud/status-badge";
+import { DeviceBulkUploadDialog } from "@/components/ejad/devices/device-bulk-upload-dialog";
+import {
+  DeviceDeleteDialog,
+  DeviceStatusDialog,
+} from "@/components/ejad/devices/device-confirm-dialogs";
+import { DeviceCreateDialog } from "@/components/ejad/devices/device-create-dialog";
+import {
+  SharedKeyDialog,
+  type ShownKey,
+} from "@/components/ejad/devices/shared-key-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DisplayTags } from "@/components/view-tags";
+import {
+  DEVICE_BY_EXTERNAL_ID_QUERY,
+  DEVICES_QUERY,
+  type Device,
+  deviceTags,
+  isDeviceEnabled,
+} from "@/lib/ejad/devices";
+import { graphqlClient } from "@/lib/graphql/client";
+
+const PARAM = "devices";
+const STATUSES = ["active", "inactive"];
+
+export const DEVICES_QUERY_KEY = "ejad-devices";
+
+function positiveInt(value: string | null, fallback: number) {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function fetchDevices(params: {
+  workspaceId: string;
+  q: string;
+  status: string | null;
+  page: number;
+  limit: number;
+  signal: AbortSignal;
+}) {
+  const { workspaceId, q, status, page, limit, signal } = params;
+  const list = graphqlClient<{
+    entities: { total: number; items: Device[] };
+  }>({
+    query: DEVICES_QUERY,
+    variables: {
+      tenantId: workspaceId,
+      q: q || null,
+      status,
+      limit,
+      offset: (page - 1) * limit,
+    },
+    signal,
+  });
+  // Atom's text search does not cover the external ID, so on the first page
+  // also look the term up as an exact serial/MAC.
+  const byExternalId =
+    q && page === 1
+      ? graphqlClient<{ entities: { items: Device[] } }>({
+          query: DEVICE_BY_EXTERNAL_ID_QUERY,
+          variables: { tenantId: workspaceId, externalId: q, status },
+          signal,
+        })
+      : null;
+  const [listData, externalData] = await Promise.all([list, byExternalId]);
+  const match = externalData?.entities.items[0];
+  const { items, total } = listData.entities;
+  if (match && !items.some((device) => device.id === match.id)) {
+    return { items: [match, ...items], total: total + 1 };
+  }
+  return { items, total };
+}
+
+export function DevicesView({ workspaceId }: { workspaceId: string }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const page = positiveInt(searchParams.get(`${PARAM}.page`), 1);
+  const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
+  const q = (searchParams.get(`${PARAM}.q`) ?? "").trim();
+  const statusParam = searchParams.get(`${PARAM}.status`);
+  const status =
+    statusParam && STATUSES.includes(statusParam) ? statusParam : null;
+
+  const [shownKey, setShownKey] = React.useState<ShownKey | null>(null);
+  const [toggling, setToggling] = React.useState<Device | null>(null);
+  const [deleting, setDeleting] = React.useState<Device | null>(null);
+
+  const { data, error, isPending } = useQuery({
+    queryKey: [DEVICES_QUERY_KEY, workspaceId, q, status, page, limit],
+    queryFn: ({ signal }) =>
+      fetchDevices({ workspaceId, q, status, page, limit, signal }),
+    placeholderData: keepPreviousData,
+  });
+
+  const refresh = React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [DEVICES_QUERY_KEY] });
+  }, [queryClient]);
+
+  const columns = React.useMemo<ColumnDef<Device>[]>(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <Link
+            href={`/devices/${row.original.id}`}
+            className="inline-flex items-center gap-2 font-medium hover:underline"
+          >
+            <Cpu className="size-4 shrink-0 text-muted-foreground" />
+            {row.original.name}
+          </Link>
+        ),
+      },
+      {
+        accessorKey: "externalId",
+        header: "External ID",
+        cell: ({ row }) =>
+          row.original.externalId ? (
+            <code className="font-mono text-xs">{row.original.externalId}</code>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: "tags",
+        header: "Tags",
+        cell: ({ row }) => {
+          const tags = deviceTags(row.original);
+          return tags.length ? (
+            <DisplayTags tags={tags} className="[&>*]:mx-0" />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <StatusBadge value={row.original.status} />,
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Created",
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap text-muted-foreground">
+            {format(new Date(row.original.createdAt), "d MMM yyyy, HH:mm")}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        meta: { className: "w-12 text-right" },
+        cell: ({ row }) => {
+          const device = row.original;
+          const enabled = isDeviceEnabled(device);
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label={`Actions for ${device.name}`}
+                >
+                  <MoreVertical />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => router.push(`/devices/${device.id}`)}
+                >
+                  <ExternalLink />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={Boolean(device.managedBy)}
+                  onSelect={() => setToggling(device)}
+                >
+                  {enabled ? <CircleOff /> : <CirclePlay />}
+                  {enabled ? "Disable" : "Enable"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  disabled={Boolean(device.managedBy)}
+                  onSelect={() => setDeleting(device)}
+                >
+                  <Trash2 />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      },
+    ],
+    [router],
+  );
+
+  return (
+    <div className="grid gap-6">
+      <section className="grid gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Devices</h1>
+        <p className="text-sm text-muted-foreground">
+          Register devices, manage their secrets, and connect them to channels.
+        </p>
+      </section>
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTitle>Could not load devices</AlertTitle>
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <DataTable
+        columns={columns}
+        data={data?.items ?? []}
+        total={data?.total ?? 0}
+        page={page}
+        limit={limit}
+        paramKey={PARAM}
+        searchPlaceholder="Search by name, tag or external ID…"
+        noResultsMessage={
+          isPending
+            ? "Loading devices…"
+            : q || status
+              ? "No devices match your search."
+              : "No devices yet. Create one or upload a CSV file."
+        }
+        statusFilter={{ enabled: true, options: STATUSES }}
+        serverFilters={{ search: true, status: true }}
+        toolbar={
+          <div className="flex flex-wrap gap-2">
+            <DeviceBulkUploadDialog onFinished={refresh} />
+            <DeviceCreateDialog
+              onCreated={(result) => {
+                refresh();
+                if (result.sharedKey) {
+                  setShownKey({
+                    title: `Device “${result.device.name}” created`,
+                    description:
+                      "The device authenticates with this secret, for example with the HTTP header “Authorization: Client <secret>”.",
+                    key: result.sharedKey.key,
+                    once: true,
+                  });
+                }
+              }}
+            />
+          </div>
+        }
+      />
+
+      <SharedKeyDialog shown={shownKey} onClose={() => setShownKey(null)} />
+      <DeviceStatusDialog
+        device={toggling}
+        onOpenChange={(open) => {
+          if (!open) setToggling(null);
+        }}
+        onDone={() => {
+          setToggling(null);
+          refresh();
+        }}
+      />
+      <DeviceDeleteDialog
+        device={deleting}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        onDeleted={() => {
+          setDeleting(null);
+          refresh();
+        }}
+      />
+    </div>
+  );
+}
