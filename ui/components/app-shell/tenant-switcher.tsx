@@ -71,7 +71,7 @@ export function TenantSwitcher() {
 
   const Icon = selection.id === GLOBAL_TENANT ? Globe2 : Building2;
   const label = tenantLabel(selection);
-  const badgeLabel = selection.id === GLOBAL_TENANT ? "platform" : "tenant";
+  const badgeLabel = selection.id === GLOBAL_TENANT ? "platform" : "workspace";
 
   return (
     <SidebarMenu>
@@ -79,7 +79,7 @@ export function TenantSwitcher() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              tooltip={label}
+              tooltip={`Workspace: ${label}`}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Icon className="shrink-0" />
@@ -99,7 +99,7 @@ export function TenantSwitcher() {
             align="start"
             sideOffset={4}
           >
-            <DropdownMenuLabel>Tenant context</DropdownMenuLabel>
+            <DropdownMenuLabel>Workspace</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {options.map((option) => (
               <DropdownMenuItem

@@ -9,8 +9,20 @@ import {
 import { cn } from "@/lib/utils";
 
 const VARIANTS = {
-  full: { light: BRAND_LOGO_LIGHT, dark: BRAND_LOGO, width: 418, height: 97, size: "h-12 w-auto" },
-  icon: { light: BRAND_ICON_LIGHT, dark: BRAND_ICON, width: 64, height: 64, size: "size-8" },
+  full: {
+    light: BRAND_LOGO_LIGHT,
+    dark: BRAND_LOGO,
+    width: 418,
+    height: 97,
+    size: "h-12 w-auto",
+  },
+  icon: {
+    light: BRAND_ICON_LIGHT,
+    dark: BRAND_ICON,
+    width: 64,
+    height: 64,
+    size: "size-8",
+  },
 } as const;
 
 /**

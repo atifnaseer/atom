@@ -32,8 +32,8 @@ export default function DashboardPage() {
           </h1>
         </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Operate {BRAND_SHORT} identity, roles, assignments, tenant boundaries, and
-          authorization explainability from task-driven workflows.
+          Operate {BRAND_SHORT} identity, roles, assignments, tenant boundaries,
+          and authorization explainability from task-driven workflows.
         </p>
       </section>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

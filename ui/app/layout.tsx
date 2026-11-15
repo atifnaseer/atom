@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Providers } from "@/components/providers";
+import { BRAND_TITLE } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { template: "%s | Atom", default: "Atom" },
+  title: { template: `%s | ${BRAND_TITLE}`, default: BRAND_TITLE },
   description: "Cloud-native identity and authorization control plane",
 };
 

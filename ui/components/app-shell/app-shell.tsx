@@ -1,42 +1,19 @@
 "use client";
 
-import {
-  Activity,
-  Boxes,
-  Braces,
-  Building2,
-  Code2,
-  FileKey,
-  Fingerprint,
-  Home,
-  KeyRound,
-  Landmark,
-  Link2,
-  ScrollText,
-  Server,
-  ShieldCheck,
-  Users,
-  Wrench,
-} from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type * as React from "react";
-import { Fragment } from "react";
 import { SessionRefresh } from "@/components/app-shell/session-refresh";
-import {
-  TenantProvider,
-  useTenant,
-} from "@/components/app-shell/tenant-provider";
+import { TenantProvider } from "@/components/app-shell/tenant-provider";
 import { TenantSwitcher } from "@/components/app-shell/tenant-switcher";
 import { UserNav } from "@/components/app-shell/user-nav";
 import { BrandLogo } from "@/components/brand-logo";
+import { SidebarNav } from "@/components/ejad/sidebar-nav";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -48,68 +25,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { BRAND_NAME } from "@/lib/brand";
-import { GLOBAL_TENANT } from "@/lib/tenant/context";
-
-type NavItem = {
-  title: string;
-  href: string;
-  icon: React.ElementType;
-};
-type NavSection = {
-  title: string;
-  items: NavItem[];
-};
-
-const navSections: NavSection[] = [
-  {
-    title: "Overview",
-    items: [
-      { title: "Dashboard", href: "/dashboard", icon: Home },
-      { title: "Tenants", href: "/tenants", icon: Building2 },
-    ],
-  },
-  {
-    title: "Identity & Access",
-    items: [
-      { title: "Entities", href: "/entities", icon: Fingerprint },
-      { title: "Profiles", href: "/profiles", icon: Braces },
-      { title: "Groups", href: "/groups", icon: Users },
-      { title: "Resources", href: "/resources", icon: Server },
-      { title: "Roles", href: "/roles", icon: ShieldCheck },
-      { title: "Permission Blocks", href: "/permission-blocks", icon: Boxes },
-      { title: "Actions", href: "/actions", icon: KeyRound },
-      { title: "Direct Policies", href: "/policies", icon: ShieldCheck },
-      { title: "Authorization", href: "/authz", icon: Activity },
-      { title: "Audit", href: "/audit", icon: ScrollText },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
-      { title: "System Health", href: "/operations/health", icon: Activity },
-      {
-        title: "Signing Keys",
-        href: "/operations/signing-keys",
-        icon: KeyRound,
-      },
-    ],
-  },
-  {
-    title: "PKI",
-    items: [
-      { title: "Authorities", href: "/pki/authorities", icon: Landmark },
-      { title: "Certificates", href: "/pki/certificates", icon: FileKey },
-      { title: "PKI Actions", href: "/pki/actions", icon: Wrench },
-    ],
-  },
-  {
-    title: "Developer",
-    items: [
-      { title: "Endpoints", href: "/endpoints", icon: Link2 },
-      { title: "Playground", href: "/playground", icon: Code2 },
-    ],
-  },
-];
 
 export function AppShell({
   children,
@@ -149,18 +64,6 @@ function AppSidebar({
   entityName: string;
   entityKind?: string;
 }) {
-  const pathname = usePathname();
-  const { selection } = useTenant();
-  const isTenantScoped = selection.id !== GLOBAL_TENANT;
-  const visibleSections = navSections
-    .map((section) => ({
-      ...section,
-      items: isTenantScoped
-        ? section.items.filter((item) => item.href !== "/tenants")
-        : section.items,
-    }))
-    .filter((section) => section.items.length > 0);
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -196,38 +99,7 @@ function AppSidebar({
 
         <SidebarSeparator className="mb-2" />
 
-        {visibleSections.map((section, index) => (
-          <Fragment key={section.title}>
-            {index > 0 ? <SidebarSeparator /> : null}
-            <SidebarGroup>
-              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu className="space-y-2">
-                  {section.items.map((item) => {
-                    const active =
-                      pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
-                    return (
-                      <SidebarMenuItem key={item.href}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={active}
-                          tooltip={item.title}
-                          className="data-active:bg-primary data-active:text-primary-foreground"
-                        >
-                          <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </Fragment>
-        ))}
+        <SidebarNav />
       </SidebarContent>
 
       <SidebarFooter>

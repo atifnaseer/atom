@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
-import { getRegistrationAvailability } from "@/lib/auth/registration";
 import { BrandLogo } from "@/components/brand-logo";
+import { getRegistrationAvailability } from "@/lib/auth/registration";
 import { BRAND_NAME, BRAND_SHORT } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Sign In" };
