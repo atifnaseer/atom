@@ -11,6 +11,7 @@ import {
   Home,
   KeyRound,
   Landmark,
+  Layers,
   LayoutDashboard,
   Link2,
   MessageSquare,
@@ -68,7 +69,10 @@ export const EJAD_PHASES = {
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Overview",
-    items: [{ title: "Home", href: "/dashboard", icon: Home }],
+    items: [
+      { title: "Home", href: "/dashboard", icon: Home },
+      { title: "Workspaces", href: "/workspaces", icon: Layers },
+    ],
   },
   {
     title: "Workspace",

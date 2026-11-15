@@ -71,6 +71,12 @@ describe("visibleNavSections", () => {
   });
 });
 
+describe("Overview section", () => {
+  it("links Home and Workspaces", () => {
+    expect(hrefs(NAV_SECTIONS[0].items)).toEqual(["/dashboard", "/workspaces"]);
+  });
+});
+
 describe("sectionIsActive", () => {
   const admin = NAV_SECTIONS[2];
   it("matches nested group children and sub-paths", () => {

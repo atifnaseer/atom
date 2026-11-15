@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE, AUTH_META_COOKIE } from "@/lib/auth/constants";
+import { LANDING_PATH } from "@/lib/ejad/routes";
 
 const REDIRECT_TO_LOGIN = new Set(["/verify-email", "/callback"]);
 const PUBLIC_PAGES = new Set(["/login", "/register"]);
@@ -49,7 +50,7 @@ export function proxy(request: NextRequest) {
   }
 
   if (PUBLIC_PAGES.has(pathname) && auth.valid && !reauth) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(LANDING_PATH, request.url));
   }
 
   if (PUBLIC_PAGES.has(pathname)) {

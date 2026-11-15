@@ -1,0 +1,300 @@
+[
+  {
+    "profile": {
+      "description": "Measures water consumption and flow.",
+      "displayName": "Water Meter",
+      "key": "water-meter",
+      "kind": "device",
+      "objectKind": "entity",
+      "status": "active"
+    },
+    "version": {
+      "jsonSchema": {
+        "properties": {
+          "battery": {
+            "maximum": 100,
+            "minimum": 0,
+            "readOnly": true,
+            "type": "number",
+            "unit": "%"
+          },
+          "flow_rate": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "m3/h"
+          },
+          "total_volume": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "m3"
+          }
+        },
+        "type": "object"
+      },
+      "status": "active",
+      "uiSchema": {
+        "ui:order": ["total_volume", "flow_rate", "battery"],
+        "x-magistrala-device-type": {
+          "commands": [
+            {
+              "description": "Set telemetry reporting interval.",
+              "name": "set_interval",
+              "params": {
+                "seconds": "integer"
+              }
+            }
+          ],
+          "measurements": [
+            {
+              "access": "r",
+              "name": "total_volume",
+              "type": "number",
+              "unit": "m3"
+            },
+            {
+              "access": "r",
+              "name": "flow_rate",
+              "type": "number",
+              "unit": "m3/h"
+            },
+            {
+              "access": "r",
+              "max": 100,
+              "min": 0,
+              "name": "battery",
+              "type": "number",
+              "unit": "%"
+            }
+          ]
+        }
+      },
+      "version": 1
+    }
+  },
+  {
+    "profile": {
+      "description": "Measures line, wellhead, and casing pressure.",
+      "displayName": "Pressure Sensor",
+      "key": "pressure-sensor",
+      "kind": "device",
+      "objectKind": "entity",
+      "status": "active"
+    },
+    "version": {
+      "jsonSchema": {
+        "properties": {
+          "battery": {
+            "maximum": 100,
+            "minimum": 0,
+            "readOnly": true,
+            "type": "number",
+            "unit": "%"
+          },
+          "casing_pressure": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "psi"
+          },
+          "pressure": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "bar"
+          },
+          "wellhead_pressure": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "psi"
+          }
+        },
+        "type": "object"
+      },
+      "status": "active",
+      "uiSchema": {
+        "ui:order": [
+          "pressure",
+          "wellhead_pressure",
+          "casing_pressure",
+          "battery"
+        ],
+        "x-magistrala-device-type": {
+          "commands": [
+            {
+              "description": "Set telemetry reporting interval.",
+              "name": "set_interval",
+              "params": {
+                "seconds": "integer"
+              }
+            }
+          ],
+          "measurements": [
+            {
+              "access": "r",
+              "name": "pressure",
+              "type": "number",
+              "unit": "bar"
+            },
+            {
+              "access": "r",
+              "name": "wellhead_pressure",
+              "type": "number",
+              "unit": "psi"
+            },
+            {
+              "access": "r",
+              "name": "casing_pressure",
+              "type": "number",
+              "unit": "psi"
+            },
+            {
+              "access": "r",
+              "max": 100,
+              "min": 0,
+              "name": "battery",
+              "type": "number",
+              "unit": "%"
+            }
+          ]
+        }
+      },
+      "version": 1
+    }
+  },
+  {
+    "profile": {
+      "description": "Measures electrical energy and power draw.",
+      "displayName": "Energy Meter",
+      "key": "energy-meter",
+      "kind": "device",
+      "objectKind": "entity",
+      "status": "active"
+    },
+    "version": {
+      "jsonSchema": {
+        "properties": {
+          "energy": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "kWh"
+          },
+          "power": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "W"
+          },
+          "voltage": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "V"
+          }
+        },
+        "type": "object"
+      },
+      "status": "active",
+      "uiSchema": {
+        "ui:order": ["energy", "power", "voltage"],
+        "x-magistrala-device-type": {
+          "commands": [
+            {
+              "description": "Set telemetry reporting interval.",
+              "name": "set_interval",
+              "params": {
+                "seconds": "integer"
+              }
+            }
+          ],
+          "measurements": [
+            {
+              "access": "r",
+              "name": "energy",
+              "type": "number",
+              "unit": "kWh"
+            },
+            {
+              "access": "r",
+              "name": "power",
+              "type": "number",
+              "unit": "W"
+            },
+            {
+              "access": "r",
+              "name": "voltage",
+              "type": "number",
+              "unit": "V"
+            }
+          ]
+        }
+      },
+      "version": 1
+    }
+  },
+  {
+    "profile": {
+      "description": "Controls and monitors pump operation.",
+      "displayName": "Pump Controller",
+      "key": "pump-controller",
+      "kind": "device",
+      "objectKind": "entity",
+      "status": "active"
+    },
+    "version": {
+      "jsonSchema": {
+        "properties": {
+          "battery": {
+            "maximum": 100,
+            "minimum": 0,
+            "readOnly": true,
+            "type": "number",
+            "unit": "%"
+          },
+          "pump_energy": {
+            "readOnly": true,
+            "type": "number",
+            "unit": "kWh"
+          },
+          "pump_running": {
+            "readOnly": true,
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "status": "active",
+      "uiSchema": {
+        "ui:order": ["pump_running", "pump_energy", "battery"],
+        "x-magistrala-device-type": {
+          "commands": [
+            {
+              "description": "Set pump state.",
+              "name": "set_pump",
+              "params": {
+                "running": "boolean"
+              }
+            }
+          ],
+          "measurements": [
+            {
+              "access": "r",
+              "name": "pump_running",
+              "type": "boolean"
+            },
+            {
+              "access": "r",
+              "name": "pump_energy",
+              "type": "number",
+              "unit": "kWh"
+            },
+            {
+              "access": "r",
+              "max": 100,
+              "min": 0,
+              "name": "battery",
+              "type": "number",
+              "unit": "%"
+            }
+          ]
+        }
+      },
+      "version": 1
+    }
+  }
+]

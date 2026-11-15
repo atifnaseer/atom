@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { LANDING_PATH } from "@/lib/ejad/routes";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Email or username is required"),
@@ -53,7 +54,7 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(search.get("next") ?? "/dashboard");
+    router.replace(search.get("next") ?? LANDING_PATH);
     router.refresh();
   }
 

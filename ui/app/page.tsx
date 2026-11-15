@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
+import { LANDING_PATH } from "@/lib/ejad/routes";
 
 export default function Home() {
-  redirect("/dashboard");
+  redirect(LANDING_PATH);
 }
