@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ChannelDetailView } from "@/components/ejad/channels/channel-detail-view";
 import { NoWorkspace } from "@/components/ejad/no-workspace";
+import { messagingEndpoints } from "@/lib/ejad/messaging-config";
 import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 
 export const metadata: Metadata = { title: "Channel" };
@@ -23,5 +24,11 @@ export default async function ChannelPage({
       />
     );
   }
-  return <ChannelDetailView channelId={id} workspaceId={workspaceId} />;
+  return (
+    <ChannelDetailView
+      channelId={id}
+      workspaceId={workspaceId}
+      endpoints={messagingEndpoints()}
+    />
+  );
 }

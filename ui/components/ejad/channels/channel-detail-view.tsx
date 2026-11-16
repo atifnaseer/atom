@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { ArrowLeft, Construction, Radio, Trash2 } from "lucide-react";
+import { ArrowLeft, Radio, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
@@ -13,6 +13,7 @@ import { ChannelConnectDialog } from "@/components/ejad/connections/channel-conn
 import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
 import { useChannelConnections } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
+import { ChannelMessages } from "@/components/ejad/messages/channel-messages";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +31,7 @@ import {
   channelTopic,
   RESOURCE_KIND_CHANNEL,
 } from "@/lib/ejad/channels";
-import { EJAD_PHASES } from "@/lib/ejad/nav";
+import type { MessagingEndpoints } from "@/lib/ejad/messages";
 import { graphqlClient, graphqlErrorCode } from "@/lib/graphql/client";
 
 const TABS = ["overview", "connections", "messages"] as const;
@@ -39,9 +40,11 @@ type TabValue = (typeof TABS)[number];
 export function ChannelDetailView({
   channelId,
   workspaceId,
+  endpoints,
 }: {
   channelId: string;
   workspaceId: string;
+  endpoints: MessagingEndpoints;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -157,9 +160,13 @@ export function ChannelDetailView({
           />
         </TabsContent>
         <TabsContent value="messages" className="mt-4">
-          <Placeholder
-            phase={EJAD_PHASES.messages}
-            text="Browse the messages devices have sent to this channel."
+          <ChannelMessages
+            workspaceId={workspaceId}
+            workspaceRoute={workspaceRoute}
+            channelId={channel.id}
+            channelName={channelLabel(channel)}
+            channelRoute={channelRoute(channel)}
+            endpoints={endpoints}
           />
         </TabsContent>
       </Tabs>
@@ -173,22 +180,6 @@ export function ChannelDetailView({
         }}
       />
     </div>
-  );
-}
-
-function Placeholder({ phase, text }: { phase: number; text: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Construction className="size-5" />
-          Coming in phase {phase}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-muted-foreground">
-        {text}
-      </CardContent>
-    </Card>
   );
 }
 
