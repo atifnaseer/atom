@@ -58,18 +58,14 @@ export class SendMessageError extends Error {
 
 export type SendMessageResult = {
   topic: string;
-  /** Which Authorization form the adapter accepted. */
-  auth: "client" | "basic";
 };
 
 type FetchFn = (input: string, init: RequestInit) => Promise<Response>;
 
 /**
- * Sends the message. The adapter is called with "Authorization: Client
- * <key>" first; FluxMQ's HTTP bridge authenticates a username + password
- * pair, and some deployments (Atom-generated `atom_…` keys) only accept the
- * key as the password of HTTP Basic auth with the device ID as username, so
- * a 401 is retried that way once.
+ * Sends the message. The adapter is called with HTTP Basic auth, the device
+ * ID as username and its key as password: FluxMQ's HTTP bridge
+ * authenticates a username + password pair.
  */
 export async function sendDeviceMessage(
   gql: GraphqlFn,
@@ -135,25 +131,15 @@ export async function sendDeviceMessage(
     .map(encodeURIComponent)
     .join("/")}`;
   const body = JSON.stringify(buildSenml(input, now));
-  const post = (authorization: string) =>
-    doFetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/senml+json",
-        authorization,
-      },
-      body,
-      signal: AbortSignal.timeout(10_000),
-    });
-
-  let auth: SendMessageResult["auth"] = "client";
-  let response = await post(`Client ${key}`);
-  if (response.status === 401) {
-    auth = "basic";
-    response = await post(
-      `Basic ${Buffer.from(`${device.id}:${key}`).toString("base64")}`,
-    );
-  }
+  const response = await doFetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/senml+json",
+      authorization: `Basic ${Buffer.from(`${device.id}:${key}`).toString("base64")}`,
+    },
+    body,
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!response.ok) {
     const text = (await response.text().catch(() => "")).trim().slice(0, 200);
     const status = response.status;
@@ -168,5 +154,5 @@ export async function sendDeviceMessage(
       502,
     );
   }
-  return { topic, auth };
+  return { topic };
 }

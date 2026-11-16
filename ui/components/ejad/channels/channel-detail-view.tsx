@@ -14,6 +14,7 @@ import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
 import { useChannelConnections } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
 import { ChannelMessages } from "@/components/ejad/messages/channel-messages";
+import { StoreMessagesSwitch } from "@/components/ejad/messages/store-messages-switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,7 +160,8 @@ export function ChannelDetailView({
             channelName={channelLabel(channel)}
           />
         </TabsContent>
-        <TabsContent value="messages" className="mt-4">
+        <TabsContent value="messages" className="mt-4 grid gap-4">
+          <StoreMessagesSwitch channelId={channel.id} />
           <ChannelMessages
             workspaceId={workspaceId}
             workspaceRoute={workspaceRoute}

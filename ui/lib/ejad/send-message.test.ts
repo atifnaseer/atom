@@ -125,7 +125,7 @@ function fakeFetch(statuses: number[]) {
 }
 
 describe("sendDeviceMessage", () => {
-  it("posts SenML on the routes with the newest active key as Client auth", async () => {
+  it("posts SenML on the routes with Basic device-ID:key auth", async () => {
     const { gql, revealed } = fakeGql({});
     const { fn, calls } = fakeFetch([200]);
     const result = await sendDeviceMessage(gql, TENANT, INPUT, {
@@ -133,34 +133,31 @@ describe("sendDeviceMessage", () => {
       fetch: fn,
       nowMs: NOW,
     });
-    expect(result).toEqual({
-      topic: "m/ejad-demo/c/cold-room",
-      auth: "client",
-    });
+    expect(result).toEqual({ topic: "m/ejad-demo/c/cold-room" });
     expect(revealed).toEqual(["new"]);
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("http://localhost/http/m/ejad-demo/c/cold-room");
     const headers = calls[0].init.headers as Record<string, string>;
-    expect(headers.authorization).toBe(`Client ${KEY}`);
+    expect(headers.authorization).toBe(
+      `Basic ${Buffer.from(`${DEVICE}:${KEY}`).toString("base64")}`,
+    );
     expect(headers["content-type"]).toBe("application/senml+json");
     expect(JSON.parse(String(calls[0].init.body))).toEqual([
       { n: "temperature", u: "Cel", t: NOW / 1000, v: 4.2 },
     ]);
   });
 
-  it("retries once with Basic device-ID auth when Client auth is refused", async () => {
+  it("does not retry when the adapter refuses the key", async () => {
     const { gql } = fakeGql({});
     const { fn, calls } = fakeFetch([401, 200]);
-    const result = await sendDeviceMessage(gql, TENANT, INPUT, {
-      httpUrl: "http://localhost/http",
-      fetch: fn,
-      nowMs: NOW,
-    });
-    expect(result.auth).toBe("basic");
-    const headers = calls[1].init.headers as Record<string, string>;
-    expect(headers.authorization).toBe(
-      `Basic ${Buffer.from(`${DEVICE}:${KEY}`).toString("base64")}`,
-    );
+    await expect(
+      sendDeviceMessage(gql, TENANT, INPUT, {
+        httpUrl: "http://localhost/http",
+        fetch: fn,
+        nowMs: NOW,
+      }),
+    ).rejects.toThrow(/secret was rejected/);
+    expect(calls).toHaveLength(1);
   });
 
   it("falls back to IDs when the workspace or channel has no route", async () => {
@@ -232,7 +229,7 @@ describe("sendDeviceMessage", () => {
 
   it("reports an adapter rejection without leaking the key", async () => {
     const { gql } = fakeGql({});
-    const { fn } = fakeFetch([401, 401]);
+    const { fn } = fakeFetch([401]);
     const error = await sendDeviceMessage(gql, TENANT, INPUT, {
       httpUrl: "http://h",
       fetch: fn,
