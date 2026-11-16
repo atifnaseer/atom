@@ -9,6 +9,9 @@ import * as React from "react";
 import { ChannelDeleteDialog } from "@/components/ejad/channels/channel-delete-dialog";
 import { CHANNELS_QUERY_KEY } from "@/components/ejad/channels/channels-view";
 import { useWorkspaceRoute } from "@/components/ejad/channels/use-workspace-route";
+import { ChannelConnectDialog } from "@/components/ejad/connections/channel-connect-dialog";
+import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
+import { useChannelConnections } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -147,9 +150,10 @@ export function ChannelDetailView({
           <Overview channel={channel} workspaceRoute={workspaceRoute} />
         </TabsContent>
         <TabsContent value="connections" className="mt-4">
-          <Placeholder
-            phase={EJAD_PHASES.connections}
-            text="Connect devices to this channel so they can publish or subscribe to its messages."
+          <ChannelConnections
+            workspaceId={workspaceId}
+            channelId={channel.id}
+            channelName={channelLabel(channel)}
           />
         </TabsContent>
         <TabsContent value="messages" className="mt-4">
@@ -282,5 +286,41 @@ function Overview({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ChannelConnections({
+  workspaceId,
+  channelId,
+  channelName,
+}: {
+  workspaceId: string;
+  channelId: string;
+  channelName: string;
+}) {
+  const [connecting, setConnecting] = React.useState(false);
+  const { data, error, isPending } = useChannelConnections(
+    workspaceId,
+    channelId,
+  );
+  return (
+    <>
+      <ConnectionsTab
+        side="channel"
+        selfLabel={channelName}
+        rows={data}
+        isPending={isPending}
+        error={error}
+        onConnect={() => setConnecting(true)}
+      />
+      <ChannelConnectDialog
+        open={connecting}
+        onOpenChange={setConnecting}
+        workspaceId={workspaceId}
+        channelId={channelId}
+        channelName={channelName}
+        existing={data}
+      />
+    </>
   );
 }

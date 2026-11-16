@@ -2,18 +2,14 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import {
-  ArrowLeft,
-  CircleOff,
-  CirclePlay,
-  Construction,
-  Cpu,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, CircleOff, CirclePlay, Cpu, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { StatusBadge } from "@/components/crud/status-badge";
+import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
+import { DeviceConnectDialog } from "@/components/ejad/connections/device-connect-dialog";
+import { useDeviceConnections } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
 import {
   DeviceDeleteDialog,
@@ -36,7 +32,6 @@ import {
   deviceTags,
   isDeviceEnabled,
 } from "@/lib/ejad/devices";
-import { EJAD_PHASES } from "@/lib/ejad/nav";
 import { graphqlClient, graphqlErrorCode } from "@/lib/graphql/client";
 
 const TABS = ["overview", "credentials", "connections", "audit"] as const;
@@ -183,18 +178,12 @@ export function DeviceDetailView({
           />
         </TabsContent>
         <TabsContent value="connections" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Construction className="size-5" />
-                Coming in phase {EJAD_PHASES.connections}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Connect this device to channels so it can publish or subscribe to
-              messages.
-            </CardContent>
-          </Card>
+          <DeviceConnections
+            workspaceId={workspaceId}
+            deviceId={device.id}
+            deviceName={device.name}
+            readOnly={readOnly}
+          />
         </TabsContent>
         <TabsContent value="audit" className="mt-4">
           <EntityAuditLog entityId={device.id} />
@@ -288,5 +277,43 @@ function Overview({ device }: { device: Device }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function DeviceConnections({
+  workspaceId,
+  deviceId,
+  deviceName,
+  readOnly,
+}: {
+  workspaceId: string;
+  deviceId: string;
+  deviceName: string;
+  readOnly: boolean;
+}) {
+  const [connecting, setConnecting] = React.useState(false);
+  const { data, error, isPending } = useDeviceConnections(
+    workspaceId,
+    deviceId,
+  );
+  return (
+    <>
+      <ConnectionsTab
+        side="device"
+        selfLabel={deviceName}
+        rows={data}
+        isPending={isPending}
+        error={error}
+        readOnly={readOnly}
+        onConnect={() => setConnecting(true)}
+      />
+      <DeviceConnectDialog
+        open={connecting}
+        onOpenChange={setConnecting}
+        workspaceId={workspaceId}
+        deviceId={deviceId}
+        deviceName={deviceName}
+      />
+    </>
   );
 }
