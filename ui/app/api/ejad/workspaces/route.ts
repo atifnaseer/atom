@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import { requireLogin } from "@/lib/ejad/access-server";
 import { createWorkspace, validateRoute } from "@/lib/ejad/workspaces";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
@@ -18,12 +18,13 @@ const STATUS_BY_CODE: Record<string, number> = {
  * finishes even if the browser navigates away.
  */
 export async function POST(request: Request) {
-  if (!(await getServerToken())) {
-    return NextResponse.json(
-      { message: "missing authentication" },
-      { status: 401 },
-    );
-  }
+  // Atom's createTenant is the permission check: it needs platform-wide
+  // `create` (every user gets it through Atom's authenticated-users group
+  // and domain-creator role) or `manage`, and answers FORBIDDEN otherwise.
+  // Ejad cannot ask beforehand: Atom's `create` action only applies to
+  // tenant objects, so there is nothing to run authzCheck against.
+  const guard = await requireLogin();
+  if ("error" in guard) return guard.error;
 
   let body: unknown;
   try {

@@ -7,6 +7,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { toastError } from "@/components/ejad/error-alert";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { requestError } from "@/lib/ejad/errors";
 import {
   ROUTE_MAX_LENGTH,
   routeFromName,
@@ -61,11 +63,7 @@ async function postWorkspace(values: Values) {
     seedError?: string | null;
   };
   if (!response.ok || !payload.workspace) {
-    const error = new Error(
-      payload.message ?? `Request failed with status ${response.status}`,
-    ) as Error & { code?: string };
-    error.code = payload.code;
-    throw error;
+    throw requestError(response, payload);
   }
   return { workspace: payload.workspace, seedError: payload.seedError };
 }
@@ -100,7 +98,7 @@ export function WorkspaceCreateDialog({
         });
         return;
       }
-      toast.error(error.message);
+      toastError(error);
     },
   });
 
@@ -131,7 +129,7 @@ export function WorkspaceCreateDialog({
         </DialogHeader>
         <Form {...form}>
           <form
-            className="grid gap-4"
+            className="grid grid-cols-1 gap-4"
             onSubmit={form.handleSubmit((values) => create.mutate(values))}
           >
             <FormField
@@ -196,6 +194,7 @@ export function WorkspaceCreateDialog({
             <Alert>
               <TriangleAlert />
               <AlertDescription>
+                {" "}
                 The route cannot be changed after the workspace is created.
               </AlertDescription>
             </Alert>

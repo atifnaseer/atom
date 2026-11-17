@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import { requireWorkspaceAbility } from "@/lib/ejad/access-server";
 import { createDevice } from "@/lib/ejad/devices";
-import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -23,19 +22,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * steps finish together; the response carries the key, shown once.
  */
 export async function POST(request: Request) {
-  if (!(await getServerToken())) {
-    return NextResponse.json(
-      { message: "missing authentication" },
-      { status: 401 },
-    );
-  }
-  const tenantId = await getServerWorkspaceId();
-  if (!tenantId) {
-    return NextResponse.json(
-      { message: "Select a workspace first." },
-      { status: 400 },
-    );
-  }
+  const guard = await requireWorkspaceAbility("manage");
+  if ("error" in guard) return guard.error;
+  const tenantId = guard.workspaceId;
 
   let body: unknown;
   try {

@@ -6,6 +6,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { toastError } from "@/components/ejad/error-alert";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,7 +95,7 @@ export function GroupFormDialog({
       onSaved(group);
       onOpenChange(false);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const title =

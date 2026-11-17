@@ -13,9 +13,12 @@ import { ChannelConnectDialog } from "@/components/ejad/connections/channel-conn
 import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
 import { useChannelConnections } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
+import { LoadProblem } from "@/components/ejad/error-alert";
 import { ChannelMessages } from "@/components/ejad/messages/channel-messages";
 import { StoreMessagesSwitch } from "@/components/ejad/messages/store-messages-switch";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageHeader } from "@/components/ejad/page-header";
+import { HeaderSkeleton } from "@/components/ejad/skeletons";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JsonEditor } from "@/components/ui/json-editor";
@@ -51,6 +54,7 @@ export function ChannelDetailView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { can } = useAccess();
   const workspaceRoute = useWorkspaceRoute(workspaceId);
   const tabParam = searchParams.get("tab");
   const tab: TabValue = TABS.includes(tabParam as TabValue)
@@ -59,7 +63,7 @@ export function ChannelDetailView({
 
   const [deleting, setDeleting] = React.useState(false);
 
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: ["ejad-channel", channelId],
     queryFn: ({ signal }) =>
       graphqlClient<{ resource: Channel }>({
@@ -90,9 +94,9 @@ export function ChannelDetailView({
 
   if (isPending) {
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Skeleton className="h-10 w-72" />
+        <HeaderSkeleton actions />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     );
@@ -103,46 +107,43 @@ export function ChannelDetailView({
     (channel.kind !== RESOURCE_KIND_CHANNEL ||
       channel.tenantId !== workspaceId);
   if (error || !channel || notHere) {
-    const notFound = graphqlErrorCode(error) === "NOT_FOUND" || notHere;
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Alert variant="destructive">
-          <AlertTitle>
-            {notFound ? "Channel not found" : "Could not load the channel"}
-          </AlertTitle>
-          <AlertDescription>
-            {notFound
-              ? "There is no such channel in the selected workspace."
-              : error?.message}
-          </AlertDescription>
-        </Alert>
+        <LoadProblem
+          what="channel"
+          error={error}
+          notFound={Boolean(notHere)}
+          back={{ href: "/channels", label: "Back to channels" }}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {backLink}
-      <section className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid min-w-0 gap-1">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <Radio className="size-6 shrink-0 text-muted-foreground" />
-            <span className="truncate">{channelLabel(channel)}</span>
-          </h1>
-          <code className="font-mono text-xs text-muted-foreground">
-            {channel.id}
-          </code>
-        </div>
-        <Button
-          variant="destructive"
-          disabled={Boolean(channel.managedBy)}
-          onClick={() => setDeleting(true)}
-        >
-          <Trash2 />
-          Delete
-        </Button>
-      </section>
+      <PageHeader
+        icon={Radio}
+        title={channelLabel(channel)}
+        actions={
+          can("manage") ? (
+            <Button
+              variant="destructive"
+              disabled={Boolean(channel.managedBy)}
+              onClick={() => setDeleting(true)}
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          ) : null
+        }
+      >
+        <code className="font-mono text-xs text-muted-foreground">
+          {channel.id}
+        </code>
+      </PageHeader>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
@@ -158,6 +159,7 @@ export function ChannelDetailView({
             workspaceId={workspaceId}
             channelId={channel.id}
             channelName={channelLabel(channel)}
+            readOnly={!can("connect")}
           />
         </TabsContent>
         <TabsContent value="messages" className="mt-4 grid gap-4">
@@ -286,10 +288,12 @@ function ChannelConnections({
   workspaceId,
   channelId,
   channelName,
+  readOnly,
 }: {
   workspaceId: string;
   channelId: string;
   channelName: string;
+  readOnly: boolean;
 }) {
   const [connecting, setConnecting] = React.useState(false);
   const { data, error, isPending } = useChannelConnections(
@@ -304,6 +308,7 @@ function ChannelConnections({
         rows={data}
         isPending={isPending}
         error={error}
+        readOnly={readOnly}
         onConnect={() => setConnecting(true)}
       />
       <ChannelConnectDialog

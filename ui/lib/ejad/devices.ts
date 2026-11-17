@@ -100,6 +100,40 @@ export const CREDENTIALS_QUERY = `
   }
 `;
 
+export type KeyAction =
+  | "create"
+  | "reveal"
+  | "reveal-newest"
+  | "rotate"
+  | "revoke";
+
+export function isKeyAction(value: unknown): value is KeyAction {
+  return (
+    value === "create" ||
+    value === "reveal" ||
+    value === "reveal-newest" ||
+    value === "rotate" ||
+    value === "revoke"
+  );
+}
+
+/** The newest active, unexpired shared key, if any. */
+export function newestActiveKey(
+  credentials: Credential[],
+  now = Date.now(),
+): Credential | null {
+  return (
+    credentials
+      .filter(
+        (c) =>
+          c.kind === "shared_key" &&
+          c.status === "active" &&
+          (!c.expiresAt || Date.parse(c.expiresAt) > now),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+  );
+}
+
 export const CREATE_SHARED_KEY_MUTATION = `
   mutation EjadCreateSharedKey($entityId: ID!, $input: CreateSharedKeyInput!) {
     createSharedKey(entityId: $entityId, input: $input) { credentialId key expiresAt }

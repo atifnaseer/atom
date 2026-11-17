@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ejad/coming-soon";
-import { EJAD_PHASES } from "@/lib/ejad/nav";
+import { DashboardsView } from "@/components/ejad/dashboards/dashboards-view";
+import { NoWorkspace } from "@/components/ejad/no-workspace";
+import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 
 export const metadata: Metadata = { title: "Dashboards" };
 export const dynamic = "force-dynamic";
 
-export default function DashboardsPage() {
-  return (
-    <ComingSoon
-      title="Dashboards"
-      description="Build dashboards that visualize device data."
-      phase={EJAD_PHASES.dashboards}
-    />
-  );
+export default async function DashboardsPage() {
+  const workspaceId = await getServerWorkspaceId();
+  if (!workspaceId) {
+    return (
+      <NoWorkspace
+        title="Dashboards"
+        description="Build dashboards that visualize device data."
+      />
+    );
+  }
+  // Keyed so switching workspace resets the view's local state.
+  return <DashboardsView key={workspaceId} workspaceId={workspaceId} />;
 }

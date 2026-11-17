@@ -81,7 +81,6 @@ export type CrudResource = {
     label: string;
     priority?: "high" | "medium" | "low";
   }>;
-  sampleRows: Array<Record<string, unknown>>;
   missing: Partial<Record<CrudAction, string>>;
 };
 
@@ -145,9 +144,6 @@ export const crudResources: CrudResource[] = [
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
     ],
-    sampleRows: [
-      { id: "global", name: "Global", alias: "-", status: "active" },
-    ],
     missing: {},
   },
   {
@@ -206,16 +202,6 @@ export const crudResources: CrudResource[] = [
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "demo-entity",
-        name: "sensor-gateway-01",
-        externalId: "SN-001",
-        kind: "device",
-        status: "active",
-        tenantId: "factory-a",
-      },
-    ],
     missing: {},
   },
   {
@@ -237,15 +223,6 @@ export const crudResources: CrudResource[] = [
       { key: "status", label: "Status", priority: "high" },
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        id: "profile-user",
-        displayName: "User",
-        objectKind: "entity",
-        kind: "human",
-        status: "active",
-      },
     ],
     missing: {},
   },
@@ -277,14 +254,6 @@ export const crudResources: CrudResource[] = [
       { key: "deletedBy", label: "Deleted by", priority: "low" },
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        id: "group-ops",
-        name: "floor-sensors",
-        tenantId: "factory-a",
-        description: "Production floor devices",
-      },
     ],
     missing: {},
   },
@@ -330,14 +299,6 @@ export const crudResources: CrudResource[] = [
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "resource-channel",
-        name: "telemetry",
-        kind: "channel",
-        tenantId: "factory-a",
-      },
-    ],
     missing: {},
   },
   {
@@ -381,14 +342,6 @@ export const crudResources: CrudResource[] = [
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "role-publisher",
-        name: "publisher",
-        tenantId: "factory-a",
-        description: "Can publish telemetry",
-      },
-    ],
     missing: {},
   },
   {
@@ -417,17 +370,6 @@ export const crudResources: CrudResource[] = [
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "permission-block-demo",
-        tenantId: "factory-a",
-        scopeMode: "object_type",
-        objectKind: "resource",
-        objectType: "resource:channel",
-        effect: "allow",
-        actions: [{ name: "read" }, { name: "publish" }],
-      },
-    ],
     missing: {
       update:
         "Permission blocks are replaced by creating a new block and relinking roles or direct policies.",
@@ -451,13 +393,6 @@ export const crudResources: CrudResource[] = [
       { key: "managedBy", label: "Managed", priority: "medium" },
       { key: "createdAt", label: "Created", priority: "low" },
       { key: "updatedAt", label: "Updated", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        id: "action-read",
-        name: "read",
-        description: "Read / view an object",
-      },
     ],
     missing: {
       update: "Action update is not exposed in this table yet.",
@@ -524,16 +459,6 @@ export const crudResources: CrudResource[] = [
       { key: "description", label: "Description", priority: "low" },
       { key: "managedBy", label: "Managed", priority: "medium" },
       { key: "createdAt", label: "Created", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        id: "action-publish:resource:resource-channel",
-        actionId: "action-publish",
-        actionName: "publish",
-        objectKind: "resource",
-        objectType: "resource:channel",
-        description: "Publish messages",
-      },
     ],
     missing: {
       update:
@@ -613,17 +538,6 @@ export const crudResources: CrudResource[] = [
       { key: "managedBy", label: "Managed", priority: "medium" },
       { key: "createdAt", label: "Created", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "assignment-rule-device-manage-resource",
-        entityKind: "device",
-        actionName: "manage",
-        objectKind: "resource",
-        objectType: null,
-        decision: "deny",
-        isAbsolute: true,
-      },
-    ],
     missing: {
       update:
         "Assignment guardrail rules are replaced by deleting and creating rows.",
@@ -654,14 +568,6 @@ export const crudResources: CrudResource[] = [
       { key: "managedBy", label: "Managed", priority: "medium" },
       { key: "createdAt", label: "Created", priority: "low" },
     ],
-    sampleRows: [
-      {
-        id: "policy-demo",
-        subjectKind: "group",
-        subjectId: "group-id",
-        permissionBlockId: "permission-block-id",
-      },
-    ],
     missing: {},
   },
 ];
@@ -678,14 +584,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "event", label: "Event", priority: "high" },
       { key: "outcome", label: "Outcome", priority: "high" },
       { key: "createdAt", label: "Time", priority: "medium" },
-    ],
-    sampleRows: [
-      {
-        id: "audit-demo",
-        event: "authz.check",
-        outcome: "allow",
-        createdAt: "recently",
-      },
     ],
     missing: {
       create: "Audit logs are system-written.",
@@ -705,14 +603,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "action", label: "Action", priority: "high" },
       { key: "result", label: "Result", priority: "high" },
     ],
-    sampleRows: [
-      {
-        id: "check-demo",
-        subject: "sensor-gateway-01",
-        action: "publish",
-        result: "allow",
-      },
-    ],
     missing: {
       update: "Authorization checks are evaluations, not persistent records.",
       delete: "Authorization checks are evaluations, not persistent records.",
@@ -731,14 +621,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "relation", label: "Relation", priority: "high" },
       { key: "target", label: "Target", priority: "high" },
     ],
-    sampleRows: [
-      {
-        id: "rel-demo",
-        source: "factory-admin",
-        relation: "owns",
-        target: "gateway-01",
-      },
-    ],
     missing: {
       read: "A consolidated relationship graph is not available yet.",
     },
@@ -755,9 +637,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "version", label: "Version", priority: "high" },
       { key: "status", label: "Status", priority: "high" },
       { key: "createdAt", label: "Created", priority: "medium" },
-    ],
-    sampleRows: [
-      { id: "profile-v1", version: 1, status: "active", createdAt: "seeded" },
     ],
     missing: {
       update: "Profile version updates are not available yet.",
@@ -783,15 +662,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "tenantId", label: "Tenant", priority: "medium" },
       { key: "notAfter", label: "Not after", priority: "medium" },
       { key: "createdAt", label: "Created", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        id: "authority-demo",
-        kind: "tenant_intermediate",
-        subject: "CN=demo-tenant intermediate",
-        status: "active",
-        version: 1,
-      },
     ],
     missing: {
       create:
@@ -824,14 +694,6 @@ export const secondaryResources: CrudResource[] = [
       { key: "expiresAt", label: "Expires", priority: "medium" },
       { key: "fingerprintSha256", label: "Fingerprint", priority: "low" },
       { key: "createdAt", label: "Issued", priority: "low" },
-    ],
-    sampleRows: [
-      {
-        credentialId: "cert-demo",
-        serialNumber: "01",
-        entityId: "device-01",
-        status: "active",
-      },
     ],
     missing: {
       create:

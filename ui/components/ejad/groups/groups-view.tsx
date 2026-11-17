@@ -7,17 +7,22 @@ import {
   ChevronsUpDown,
   Folder,
   FolderOpen,
+  FolderTree,
   Plus,
   Search,
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { ErrorAlert } from "@/components/ejad/error-alert";
 import {
   GroupActionsMenu,
   useGroupActions,
 } from "@/components/ejad/groups/group-actions";
 import { useObjectGroups } from "@/components/ejad/groups/use-object-groups";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IfAllowed } from "@/components/ejad/if-allowed";
+import { PageHeader } from "@/components/ejad/page-header";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,7 +35,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export function GroupsView({ workspaceId }: { workspaceId: string }) {
-  const { tree, groups, error, isPending } = useObjectGroups(workspaceId);
+  const { tree, groups, error, isPending, refetch } =
+    useObjectGroups(workspaceId);
+  const canManage = useAccess().can("manage");
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const [search, setSearch] = React.useState("");
   const actions = useGroupActions({
@@ -72,19 +79,27 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
     withChildren.every((group) => collapsed.has(group.id));
 
   return (
-    <div className="grid gap-6">
-      <section className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Groups</h1>
-        <p className="text-sm text-muted-foreground">
-          Organize devices and channels into a tree of groups.
-        </p>
-      </section>
+    <div className="grid grid-cols-1 gap-6">
+      <PageHeader
+        icon={FolderTree}
+        title="Groups"
+        description="Organize devices and channels into a tree of groups, for example by site, building or floor."
+        actions={
+          <IfAllowed ability="manage">
+            <Button onClick={() => actions.create(null)}>
+              <Plus />
+              Create group
+            </Button>
+          </IfAllowed>
+        }
+      />
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load groups</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert
+          title="Could not load groups"
+          error={error}
+          onRetry={() => refetch()}
+        />
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -114,10 +129,6 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
               {allCollapsed ? "Expand all" : "Collapse all"}
             </Button>
           ) : null}
-          <Button onClick={() => actions.create(null)}>
-            <Plus />
-            Create group
-          </Button>
         </div>
       </div>
 
@@ -129,12 +140,30 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
               <Skeleton className="ml-6 h-8 w-56" />
               <Skeleton className="h-8 w-60" />
             </div>
-          ) : rows.length === 0 ? (
+          ) : rows.length === 0 && visible ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              {visible
-                ? "No groups match your search."
-                : "No groups yet. Create one to organize devices and channels."}
+              No groups match your search.
             </p>
+          ) : rows.length === 0 ? (
+            error ? null : (
+              <EmptyState
+                icon={FolderTree}
+                title="No groups yet"
+                description={
+                  canManage
+                    ? "Groups let you organize devices and channels, and filter lists by site or area. Create a top-level group to start."
+                    : "Groups let you organize devices and channels. Ask a workspace admin to create one."
+                }
+                action={
+                  canManage ? (
+                    <Button onClick={() => actions.create(null)}>
+                      <Plus />
+                      Create group
+                    </Button>
+                  ) : null
+                }
+              />
+            )
           ) : (
             <ul aria-label="Groups" className="grid">
               {rows.map((node) => (
@@ -207,7 +236,9 @@ function GroupRow({
           {children.length} subgroup{children.length === 1 ? "" : "s"}
         </span>
       ) : null}
-      <GroupActionsMenu group={group} actions={actions} />
+      <IfAllowed ability="manage">
+        <GroupActionsMenu group={group} actions={actions} />
+      </IfAllowed>
     </li>
   );
 }

@@ -29,12 +29,15 @@ import {
   SharedKeyDialog,
   type ShownKey,
 } from "@/components/ejad/devices/shared-key-dialog";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { ErrorAlert } from "@/components/ejad/error-alert";
 import { GroupBadges } from "@/components/ejad/groups/group-badges";
 import {
   useGroupFilter,
   useObjectGroups,
 } from "@/components/ejad/groups/use-object-groups";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageHeader } from "@/components/ejad/page-header";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -46,6 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DisplayTags } from "@/components/view-tags";
 import {
+  type CreateDeviceResult,
   DEVICE_BY_EXTERNAL_ID_QUERY,
   DEVICES_QUERY,
   type Device,
@@ -116,6 +120,7 @@ async function fetchDevices(params: {
 export function DevicesView({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const canManage = useAccess().can("manage");
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get(`${PARAM}.page`), 1);
   const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
@@ -131,7 +136,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
   const [toggling, setToggling] = React.useState<Device | null>(null);
   const [deleting, setDeleting] = React.useState<Device | null>(null);
 
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: [DEVICES_QUERY_KEY, workspaceId, q, status, groupId, page, limit],
     queryFn: ({ signal }) =>
       fetchDevices({ workspaceId, q, status, groupId, page, limit, signal }),
@@ -229,45 +234,71 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
                   <ExternalLink />
                   Open
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  disabled={Boolean(device.managedBy)}
-                  onSelect={() => setToggling(device)}
-                >
-                  {enabled ? <CircleOff /> : <CirclePlay />}
-                  {enabled ? "Disable" : "Enable"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  disabled={Boolean(device.managedBy)}
-                  onSelect={() => setDeleting(device)}
-                >
-                  <Trash2 />
-                  Delete
-                </DropdownMenuItem>
+                {canManage ? (
+                  <>
+                    <DropdownMenuItem
+                      disabled={Boolean(device.managedBy)}
+                      onSelect={() => setToggling(device)}
+                    >
+                      {enabled ? <CircleOff /> : <CirclePlay />}
+                      {enabled ? "Disable" : "Enable"}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={Boolean(device.managedBy)}
+                      onSelect={() => setDeleting(device)}
+                    >
+                      <Trash2 />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         },
       },
     ],
-    [router, groupTree],
+    [router, groupTree, canManage],
   );
 
+  const onCreated = (result: CreateDeviceResult) => {
+    refresh();
+    if (result.sharedKey) {
+      setShownKey({
+        title: `Device “${result.device.name}” created`,
+        description:
+          "The device authenticates with this secret, for example with the HTTP header “Authorization: Client <secret>”.",
+        key: result.sharedKey.key,
+        once: true,
+      });
+    }
+  };
+  const filtered = Boolean(q || status || groupId);
+
   return (
-    <div className="grid gap-6">
-      <section className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Devices</h1>
-        <p className="text-sm text-muted-foreground">
-          Register devices, manage their secrets, and connect them to channels.
-        </p>
-      </section>
+    <div className="grid grid-cols-1 gap-6">
+      <PageHeader
+        icon={Cpu}
+        title="Devices"
+        description="Register devices, manage their secrets, and connect them to channels."
+        actions={
+          canManage ? (
+            <>
+              <DeviceBulkUploadDialog onFinished={refresh} />
+              <DeviceCreateDialog onCreated={onCreated} />
+            </>
+          ) : null
+        }
+      />
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load devices</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert
+          title="Could not load devices"
+          error={error}
+          onRetry={() => refetch()}
+        />
       ) : null}
 
       <DataTable
@@ -278,35 +309,27 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         limit={limit}
         paramKey={PARAM}
         searchPlaceholder="Search by name, tag or external ID…"
-        noResultsMessage={
-          isPending
-            ? "Loading devices…"
-            : q || status || groupId
-              ? "No devices match your search."
-              : "No devices yet. Create one or upload a CSV file."
+        loading={isPending}
+        noResultsMessage="No devices match your search."
+        emptyState={
+          filtered || error ? undefined : (
+            <EmptyState
+              icon={Cpu}
+              title="No devices yet"
+              description={
+                canManage
+                  ? "A device is a sensor, gateway or machine that sends and receives messages. Add one, or upload a CSV file to add many at once."
+                  : "A device is a sensor, gateway or machine that sends and receives messages. Ask a workspace admin to add one."
+              }
+              action={
+                canManage ? <DeviceCreateDialog onCreated={onCreated} /> : null
+              }
+            />
+          )
         }
         statusFilter={{ enabled: true, options: STATUSES }}
         filters={groupFilter}
         serverFilters={{ search: true, status: true }}
-        toolbar={
-          <div className="flex flex-wrap gap-2">
-            <DeviceBulkUploadDialog onFinished={refresh} />
-            <DeviceCreateDialog
-              onCreated={(result) => {
-                refresh();
-                if (result.sharedKey) {
-                  setShownKey({
-                    title: `Device “${result.device.name}” created`,
-                    description:
-                      "The device authenticates with this secret, for example with the HTTP header “Authorization: Client <secret>”.",
-                    key: result.sharedKey.key,
-                    once: true,
-                  });
-                }
-              }}
-            />
-          </div>
-        }
       />
 
       <SharedKeyDialog shown={shownKey} onClose={() => setShownKey(null)} />

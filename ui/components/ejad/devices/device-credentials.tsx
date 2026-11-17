@@ -7,9 +7,14 @@ import * as React from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/crud/status-badge";
 import {
+  deviceKeyAction,
+  listDeviceKeys,
+} from "@/components/ejad/devices/device-keys-client";
+import {
   SharedKeyDialog,
   type ShownKey,
 } from "@/components/ejad/devices/shared-key-dialog";
+import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,16 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  CREDENTIALS_QUERY,
-  type Credential,
-  createSharedKey,
-  REVEAL_SHARED_KEY_MUTATION,
-  REVOKE_CREDENTIAL_MUTATION,
-  rotateSharedKey,
-  type SharedKey,
-} from "@/lib/ejad/devices";
-import { graphqlClient } from "@/lib/graphql/client";
+import type { Credential, SharedKey } from "@/lib/ejad/devices";
 
 const KIND_LABELS: Record<string, string> = {
   shared_key: "Secret (shared key)",
@@ -69,15 +65,10 @@ export function DeviceCredentials({
 
   const { data, error, isPending } = useQuery({
     queryKey,
-    queryFn: ({ signal }) =>
-      graphqlClient<{ credentials: { items: Credential[] } }>({
-        query: CREDENTIALS_QUERY,
-        variables: { entityId: deviceId },
-        signal,
-      }),
+    queryFn: ({ signal }) => listDeviceKeys(deviceId, signal),
   });
   // Active first, newest first within each group.
-  const credentials = [...(data?.credentials.items ?? [])].sort(
+  const credentials = [...(data ?? [])].sort(
     (a, b) =>
       Number(b.status === "active") - Number(a.status === "active") ||
       b.createdAt.localeCompare(a.createdAt),
@@ -101,22 +92,18 @@ export function DeviceCredentials({
   }
 
   const create = useMutation({
-    mutationFn: () => createSharedKey(graphqlClient, deviceId),
+    mutationFn: async () =>
+      (await deviceKeyAction(deviceId, "create")).sharedKey,
     onSuccess: (sharedKey) => {
       refresh();
       showNewKey(sharedKey, "Secret created");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   });
 
   const reveal = useMutation({
-    mutationFn: async (credential: Credential) => {
-      const result = await graphqlClient<{ revealSharedKey: SharedKey }>({
-        query: REVEAL_SHARED_KEY_MUTATION,
-        variables: { entityId: deviceId, credentialId: credential.id },
-      });
-      return result.revealSharedKey;
-    },
+    mutationFn: async (credential: Credential) =>
+      (await deviceKeyAction(deviceId, "reveal", credential.id)).sharedKey,
     onSuccess: (sharedKey) => {
       queryClient.invalidateQueries({ queryKey: ["object-audit"] });
       setShown({
@@ -126,18 +113,18 @@ export function DeviceCredentials({
         once: false,
       });
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   });
 
   const act = useMutation({
     mutationFn: async ({ action, credential }: Confirm) => {
       if (action === "rotate") {
-        return rotateSharedKey(graphqlClient, deviceId, credential.id);
+        return deviceKeyAction<{
+          sharedKey: SharedKey;
+          revokeError: string | null;
+        }>(deviceId, "rotate", credential.id);
       }
-      await graphqlClient({
-        query: REVOKE_CREDENTIAL_MUTATION,
-        variables: { entityId: deviceId, credentialId: credential.id },
-      });
+      await deviceKeyAction(deviceId, "revoke", credential.id);
       return null;
     },
     onSuccess: (result) => {
@@ -154,11 +141,11 @@ export function DeviceCredentials({
       }
       showNewKey(result.sharedKey, "Secret rotated");
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   });
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {activeKeys === 0
@@ -176,9 +163,7 @@ export function DeviceCredentials({
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {error.message}
-        </div>
+        <ErrorAlert title="Could not load secrets" error={error} />
       ) : (
         <div className="rounded-lg border">
           <Table>

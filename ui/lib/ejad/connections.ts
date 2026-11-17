@@ -64,9 +64,11 @@ const BLOCK_FIELDS =
   "id tenantId scopeMode objectKind objectType objectId groupId effect actions { id name }";
 const POLICY_FIELDS = `id tenantId subjectKind subjectId permissionBlockId permissionBlock { ${BLOCK_FIELDS} }`;
 
+// tenantId matters: without it Atom checks policy-read platform-wide,
+// which only platform admins have; with it, workspace roles can read too.
 export const ACTIONS_QUERY = `
-  query EjadActions($limit: Int!, $offset: Int!) {
-    actions(limit: $limit, offset: $offset) { total items { id name } }
+  query EjadActions($tenantId: ID, $limit: Int!, $offset: Int!) {
+    actions(tenantId: $tenantId, limit: $limit, offset: $offset) { total items { id name } }
   }
 `;
 
@@ -111,13 +113,17 @@ export function isConnectionType(value: unknown): value is ConnectionType {
 }
 
 /** Resolves an action name to its id, paging like Magistrala's CapabilityID. */
-export async function actionId(gql: GraphqlFn, name: string): Promise<string> {
+export async function actionId(
+  gql: GraphqlFn,
+  name: string,
+  tenantId: string,
+): Promise<string> {
   for (let offset = 0; ; offset += POLICY_PAGE_LIMIT) {
     const { actions } = await gql<{
       actions: { total: number; items: PolicyAction[] };
     }>({
       query: ACTIONS_QUERY,
-      variables: { limit: POLICY_PAGE_LIMIT, offset },
+      variables: { tenantId, limit: POLICY_PAGE_LIMIT, offset },
     });
     const match = actions.items.find((action) => action.name === name);
     if (match) return match.id;
@@ -131,12 +137,12 @@ export async function actionId(gql: GraphqlFn, name: string): Promise<string> {
 }
 
 /** Resolves action ids once per call site (publish + subscribe in one pass). */
-export function actionIdResolver(gql: GraphqlFn) {
+export function actionIdResolver(gql: GraphqlFn, tenantId: string) {
   const cache = new Map<string, Promise<string>>();
   return (name: ConnectionType) => {
     let id = cache.get(name);
     if (!id) {
-      id = actionId(gql, name);
+      id = actionId(gql, name, tenantId);
       cache.set(name, id);
       id.catch(() => cache.delete(name));
     }
@@ -383,7 +389,7 @@ export async function connectMany(
   tenantId: string,
   request: ConnectionRequest,
 ): Promise<ConnectionResult> {
-  const resolve = actionIdResolver(gql);
+  const resolve = actionIdResolver(gql, tenantId);
   const result: ConnectionResult = { changed: 0, skipped: 0, failed: [] };
   for (const deviceId of request.deviceIds) {
     let existing: DirectPolicy[];
@@ -436,7 +442,7 @@ export async function disconnectMany(
   tenantId: string,
   request: ConnectionRequest,
 ): Promise<ConnectionResult> {
-  const resolve = actionIdResolver(gql);
+  const resolve = actionIdResolver(gql, tenantId);
   const result: ConnectionResult = { changed: 0, skipped: 0, failed: [] };
   for (const deviceId of request.deviceIds) {
     for (const channelId of request.channelIds) {

@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { postDevice } from "@/components/ejad/devices/post-device";
+import { toastError } from "@/components/ejad/error-alert";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -97,7 +98,7 @@ export function DeviceCreateDialog({
         });
         return;
       }
-      toast.error(error.message);
+      toastError(error);
     },
   });
 

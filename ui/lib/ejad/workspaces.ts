@@ -4,6 +4,7 @@
 // { source: "magistrala", metadata: {...} }.
 
 import defaultDeviceTypes from "@/lib/ejad/default-device-types.json";
+import { ensureWorkspaceRoles } from "@/lib/ejad/members";
 
 export const MAGISTRALA_SOURCE = "magistrala";
 
@@ -224,8 +225,9 @@ export async function seedDefaultDeviceTypes(
 /**
  * Creates a workspace exactly like Magistrala's CreateTenant: createTenant
  * (which, in Atom, also gives the caller a tenant-admin role, role
- * assignment and membership in the same transaction), then seed the
- * default device types.
+ * assignment and membership in the same transaction, so the creator is the
+ * workspace's Admin), then seed the default device types. Finally the Ejad
+ * Admin/Operator/Viewer roles are created so members can be added.
  */
 export async function createWorkspace(
   gql: GraphqlFn,
@@ -235,13 +237,22 @@ export async function createWorkspace(
     query: CREATE_WORKSPACE_MUTATION,
     variables: { input: createWorkspaceInput(values) },
   });
+  const errors: string[] = [];
   try {
     await seedDefaultDeviceTypes(gql, createTenant.id);
-    return { workspace: createTenant, seedError: null };
   } catch (error) {
-    return {
-      workspace: createTenant,
-      seedError: error instanceof Error ? error.message : String(error),
-    };
+    errors.push(error instanceof Error ? error.message : String(error));
   }
+  try {
+    await ensureWorkspaceRoles(gql, createTenant.id);
+  } catch (error) {
+    // The Members page creates them on first open, so this is not fatal.
+    errors.push(
+      `workspace roles: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  return {
+    workspace: createTenant,
+    seedError: errors.length > 0 ? errors.join("; ") : null,
+  };
 }

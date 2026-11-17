@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { LoadProblem } from "@/components/ejad/error-alert";
 import { useGroupActions } from "@/components/ejad/groups/group-actions";
 import { GroupMembers } from "@/components/ejad/groups/group-members";
 import { useObjectGroups } from "@/components/ejad/groups/use-object-groups";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IfAllowed } from "@/components/ejad/if-allowed";
+import { HeaderSkeleton } from "@/components/ejad/skeletons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,7 +45,7 @@ export function GroupDetailView({
     : "devices";
 
   const { tree } = useObjectGroups(workspaceId);
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: ["ejad-group", groupId],
     queryFn: ({ signal }) =>
       graphqlClient<{ group: ObjectGroup & { groupType: string } }>({
@@ -86,9 +88,9 @@ export function GroupDetailView({
 
   if (isPending) {
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Skeleton className="h-10 w-72" />
+        <HeaderSkeleton actions />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     );
@@ -97,20 +99,16 @@ export function GroupDetailView({
   const notHere =
     group && (group.groupType !== "object" || group.tenantId !== workspaceId);
   if (error || !group || notHere) {
-    const notFound = graphqlErrorCode(error) === "NOT_FOUND" || notHere;
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Alert variant="destructive">
-          <AlertTitle>
-            {notFound ? "Group not found" : "Could not load the group"}
-          </AlertTitle>
-          <AlertDescription>
-            {notFound
-              ? "There is no such group in the selected workspace."
-              : error?.message}
-          </AlertDescription>
-        </Alert>
+        <LoadProblem
+          what="group"
+          error={error}
+          notFound={Boolean(notHere)}
+          back={{ href: "/device-groups", label: "Back to groups" }}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -124,7 +122,7 @@ export function GroupDetailView({
   const managed = Boolean(group.managedBy);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {backLink}
       <section className="flex flex-wrap items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1">
@@ -147,7 +145,7 @@ export function GroupDetailView({
             </nav>
           ) : null}
           <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <Folder className="size-6 shrink-0 text-muted-foreground" />
+            <Folder className="size-6 shrink-0 text-primary" />
             <span className="truncate">{group.name}</span>
           </h1>
           {group.description ? (
@@ -158,36 +156,38 @@ export function GroupDetailView({
             {format(new Date(group.createdAt), "d MMM yyyy, HH:mm")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => actions.create(group)}>
-            <FolderPlus />
-            Add subgroup
-          </Button>
-          <Button
-            variant="outline"
-            disabled={managed}
-            onClick={() => actions.edit(group)}
-          >
-            <Pencil />
-            Rename
-          </Button>
-          <Button
-            variant="outline"
-            disabled={managed}
-            onClick={() => actions.move(group)}
-          >
-            <FolderInput />
-            Move
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={managed}
-            onClick={() => actions.remove(group)}
-          >
-            <Trash2 />
-            Delete
-          </Button>
-        </div>
+        <IfAllowed ability="manage">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => actions.create(group)}>
+              <FolderPlus />
+              Add subgroup
+            </Button>
+            <Button
+              variant="outline"
+              disabled={managed}
+              onClick={() => actions.edit(group)}
+            >
+              <Pencil />
+              Rename
+            </Button>
+            <Button
+              variant="outline"
+              disabled={managed}
+              onClick={() => actions.move(group)}
+            >
+              <FolderInput />
+              Move
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={managed}
+              onClick={() => actions.remove(group)}
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          </div>
+        </IfAllowed>
       </section>
 
       <Tabs value={tab} onValueChange={setTab}>
@@ -212,14 +212,16 @@ export function GroupDetailView({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Subgroups</CardTitle>
-              <Button size="sm" onClick={() => actions.create(group)}>
-                <FolderPlus />
-                Add subgroup
-              </Button>
+              <IfAllowed ability="manage">
+                <Button size="sm" onClick={() => actions.create(group)}>
+                  <FolderPlus />
+                  Add subgroup
+                </Button>
+              </IfAllowed>
             </CardHeader>
             <CardContent>
               {children.length ? (
-                <ul className="grid gap-1">
+                <ul className="grid grid-cols-1 gap-1">
                   {children.map((child) => (
                     <li key={child.id}>
                       <Link

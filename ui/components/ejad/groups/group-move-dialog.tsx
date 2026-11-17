@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
 import { toast } from "sonner";
+import { toastError } from "@/components/ejad/error-alert";
 import { indentLabel } from "@/components/ejad/groups/use-object-groups";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,7 +78,7 @@ export function GroupMoveDialog({
       onMoved();
       onOpenChange(false);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -96,13 +97,13 @@ export function GroupMoveDialog({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="grid gap-4"
+          className="grid grid-cols-1 gap-4"
           onSubmit={(event) => {
             event.preventDefault();
             if (parent !== current) move.mutate();
           }}
         >
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Label htmlFor="group-move-parent">Parent</Label>
             <Select
               value={parent}

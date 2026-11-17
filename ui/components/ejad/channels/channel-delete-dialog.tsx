@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastError } from "@/components/ejad/error-alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,7 @@ export function ChannelDeleteDialog({
       toast.success(`Channel “${channelLabel(target)}” deleted`);
       onDeleted(target);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const route = channel ? channelRoute(channel) : null;

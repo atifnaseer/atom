@@ -1,4 +1,5 @@
 import type { Channel, ChannelValues } from "@/lib/ejad/channels";
+import { requestError } from "@/lib/ejad/errors";
 
 export type PostChannelError = Error & {
   code?: string;
@@ -20,10 +21,7 @@ export async function postChannel(body: ChannelValues): Promise<Channel> {
     field?: "name" | "route";
   };
   if (!response.ok || !payload.channel) {
-    const error = new Error(
-      payload.message ?? `Request failed with status ${response.status}`,
-    ) as PostChannelError;
-    error.code = payload.code;
+    const error: PostChannelError = requestError(response, payload);
     error.field = payload.field;
     throw error;
   }

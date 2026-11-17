@@ -51,3 +51,22 @@ Rules:
 - Brand name comes from ui/lib/brand.ts.
 - After each change: pnpm lint, pnpm test, pnpm build must pass.
 - Verify every feature against the live stack, not with mocks only.
+- Access (Phase 8): workspace roles are Atom roles workspace-admin,
+  workspace-operator and workspace-viewer (lib/ejad/members.ts), each one
+  tenant-scoped permission block; Atom's tenant-admin counts as Admin.
+  Every /api/ejad route starts with requireWorkspaceAbility(...) or
+  requirePlatformAdmin() from lib/ejad/access-server.ts; the browser hides
+  buttons with useAccess() / <IfAllowed> (Atom's authzCheck on the
+  workspace). Device keys go only through /api/ejad/devices/[id]/keys.
+- UI conventions (Phase 9): every Ejad page starts with <PageHeader> (icon,
+  title, one-line description, primary action on the right); an empty list
+  shows <EmptyState> (what the thing is + the primary action, or who to ask);
+  loading shows skeletons (DataTable `loading`, components/ejad/skeletons.tsx,
+  and a loading.tsx per route); every delete/remove asks first
+  (<ConfirmDialog> or a dedicated *-delete-dialog).
+- Errors: never show error.message. Use <ErrorAlert>/<LoadProblem> inline
+  and toastError() for actions; they go through friendlyError() in
+  lib/ejad/errors.ts, which maps Atom's GraphQL error codes to plain
+  language. /api/ejad fetchers throw requestError(response, payload) so the
+  code survives to the browser.
+- No sample/fake data anywhere: on a failed load show the error and no rows.

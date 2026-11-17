@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import type { Ability } from "@/lib/ejad/access";
+import { requireWorkspaceAbility } from "@/lib/ejad/access-server";
 import {
   CHANNEL_QUERY,
   type Channel,
@@ -12,7 +13,6 @@ import {
   storeState,
   UPDATE_CHANNEL_ATTRIBUTES_MUTATION,
 } from "@/lib/ejad/store-messages";
-import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -34,14 +34,14 @@ function atomFailure(error: unknown) {
 
 type Ready = { error: NextResponse } | { channel: Channel };
 
-/** Login, workspace and channel checks shared by GET and PUT. */
+/** Login, workspace, role and channel checks shared by GET and PUT. */
 async function loadChannel(
   ctx: RouteContext<"/api/ejad/channels/[id]/store">,
+  ability: Ability,
 ): Promise<Ready> {
-  const token = await getServerToken();
-  if (!token) return { error: fail("missing authentication", 401) };
-  const workspaceId = await getServerWorkspaceId();
-  if (!workspaceId) return { error: fail("Select a workspace first.", 400) };
+  const guard = await requireWorkspaceAbility(ability);
+  if ("error" in guard) return guard;
+  const { workspaceId } = guard;
   const { id } = await ctx.params;
   if (!isUuid(id)) return { error: fail("Pick a channel.", 400) };
 
@@ -67,7 +67,7 @@ export async function GET(
   _request: Request,
   ctx: RouteContext<"/api/ejad/channels/[id]/store">,
 ) {
-  const ready = await loadChannel(ctx);
+  const ready = await loadChannel(ctx, "view");
   if ("error" in ready) return ready.error;
   return NextResponse.json(storeState(ready.channel));
 }
@@ -91,7 +91,7 @@ export async function PUT(
   if (typeof enabled !== "boolean")
     return fail("enabled must be true or false.", 400);
 
-  const ready = await loadChannel(ctx);
+  const ready = await loadChannel(ctx, "manage");
   if ("error" in ready) return ready.error;
   const { channel } = ready;
   if (storeState(channel).enabled === enabled)

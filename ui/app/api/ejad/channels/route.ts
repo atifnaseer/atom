@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import { requireWorkspaceAbility } from "@/lib/ejad/access-server";
 import { ChannelInputError, createChannel } from "@/lib/ejad/channels";
-import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -30,14 +29,9 @@ function bad(message: string, field?: string) {
  * the route clash check and the create happen together.
  */
 export async function POST(request: Request) {
-  if (!(await getServerToken())) {
-    return NextResponse.json(
-      { message: "missing authentication" },
-      { status: 401 },
-    );
-  }
-  const tenantId = await getServerWorkspaceId();
-  if (!tenantId) return bad("Select a workspace first.");
+  const guard = await requireWorkspaceAbility("manage");
+  if ("error" in guard) return guard.error;
+  const tenantId = guard.workspaceId;
 
   let body: unknown;
   try {

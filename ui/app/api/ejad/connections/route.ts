@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import { requireWorkspaceAbility } from "@/lib/ejad/access-server";
 import { RESOURCE_KIND_CHANNEL } from "@/lib/ejad/channels";
 import {
   type ConnectionRequest,
@@ -7,7 +7,6 @@ import {
   disconnectMany,
   parseConnectionRequest,
 } from "@/lib/ejad/connections";
-import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -71,14 +70,9 @@ async function checkTargets(
 }
 
 async function handle(request: Request, mode: "connect" | "disconnect") {
-  if (!(await getServerToken())) {
-    return NextResponse.json(
-      { message: "missing authentication" },
-      { status: 401 },
-    );
-  }
-  const tenantId = await getServerWorkspaceId();
-  if (!tenantId) return bad("Select a workspace first.");
+  const guard = await requireWorkspaceAbility("connect");
+  if ("error" in guard) return guard.error;
+  const tenantId = guard.workspaceId;
 
   let body: unknown;
   try {

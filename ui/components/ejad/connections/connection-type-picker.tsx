@@ -24,7 +24,7 @@ export function ConnectionTypePicker({
   disabled?: boolean;
 }) {
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       {available.map((type) => {
         const id = `${idPrefix}-${type}`;
         return (

@@ -4,6 +4,7 @@ import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Search, X } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
+import { toastError } from "@/components/ejad/error-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +25,7 @@ import {
   channelRoute,
 } from "@/lib/ejad/channels";
 import { DEVICES_QUERY, type Device } from "@/lib/ejad/devices";
+import { errorText } from "@/lib/ejad/errors";
 import {
   type MemberKind,
   memberGroupIds,
@@ -181,7 +183,7 @@ export function GroupAddMembersDialog({
           ),
       );
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -250,7 +252,7 @@ export function GroupAddMembersDialog({
                   </p>
                 ) : candidates.error ? (
                   <p className="p-3 text-sm text-destructive">
-                    {candidates.error.message}
+                    {errorText(candidates.error)}
                   </p>
                 ) : items.length === 0 ? (
                   <p className="p-3 text-sm text-muted-foreground">

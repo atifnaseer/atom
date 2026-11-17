@@ -7,6 +7,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { toastError } from "@/components/ejad/error-alert";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,7 @@ function EditForm({
       toast.success(`Workspace “${updated.name}” updated`);
       onSaved(updated);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -160,7 +161,7 @@ function EditForm({
             </FormItem>
           )}
         />
-        <div className="grid gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <Label htmlFor="workspace-route">Route</Label>
           <Input
             id="workspace-route"

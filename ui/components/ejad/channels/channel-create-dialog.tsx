@@ -12,6 +12,7 @@ import {
   type PostChannelError,
   postChannel,
 } from "@/components/ejad/channels/post-channel";
+import { toastError } from "@/components/ejad/error-alert";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ export function ChannelCreateDialog({
         form.setError(error.field, { message: error.message });
         return;
       }
-      toast.error(error.message);
+      toastError(error);
     },
   });
 

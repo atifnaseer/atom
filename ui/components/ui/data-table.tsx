@@ -49,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -59,6 +60,7 @@ import {
 } from "@/components/ui/table";
 
 const PAGE_SIZES = [10, 20, 50] as const;
+const LOADING_ROWS = [0, 1, 2, 3, 4];
 const EMPTY_FILTERS: NonNullable<DataTableProps<unknown, unknown>["filters"]> =
   [];
 const NO_SERVER_FILTERS: NonNullable<
@@ -78,6 +80,10 @@ export type DataTableProps<TData, TValue> = {
   paramKey: string;
   searchPlaceholder?: string;
   noResultsMessage?: string;
+  /** Shows placeholder rows instead of the empty message. */
+  loading?: boolean;
+  /** Rendered instead of `noResultsMessage` when there are no rows. */
+  emptyState?: React.ReactNode;
   statusFilter?: {
     enabled: boolean;
     label?: string;
@@ -110,8 +116,10 @@ export function DataTable<TData, TValue>({
   page,
   limit,
   paramKey,
-  searchPlaceholder = "Search…",
+    searchPlaceholder = "Search…",
   noResultsMessage = "No results.",
+  loading = false,
+  emptyState,
   statusFilter,
   filters = EMPTY_FILTERS,
   serverFilters = NO_SERVER_FILTERS,
@@ -353,10 +361,10 @@ export function DataTable<TData, TValue>({
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              aria-label={searchPlaceholder}
+                            aria-label={searchPlaceholder}
               className="h-9 w-full pl-9 sm:w-72"
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder={searchPlaceholder}
+                            placeholder={searchPlaceholder}
               value={searchValue}
             />
           </div>
@@ -462,13 +470,24 @@ export function DataTable<TData, TValue>({
                   ))}
                 </TableRow>
               ))
+            ) : loading ? (
+              LOADING_ROWS.map((row) => (
+                <TableRow key={row} aria-hidden="true">
+                  {Array.from({ length: colCount }, (_, col) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+                    <TableCell key={col}>
+                      <Skeleton className="h-4 w-full max-w-40" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
             ) : (
               <TableRow>
                 <TableCell
-                  className="h-24 text-center text-sm text-muted-foreground"
+                  className="h-24 whitespace-normal text-center text-sm text-muted-foreground"
                   colSpan={colCount}
                 >
-                  {noResultsMessage}
+                  {emptyState ?? noResultsMessage}
                 </TableCell>
               </TableRow>
             )}
@@ -479,7 +498,7 @@ export function DataTable<TData, TValue>({
       {/* Pagination footer */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm text-muted-foreground">
-          {rowCount} row{rowCount !== 1 ? "s" : ""}
+                    {rowCount} row{rowCount !== 1 ? "s" : ""}
         </span>
         <div className="flex items-center gap-4">
           <div className="hidden items-center gap-2 sm:flex">
@@ -510,7 +529,7 @@ export function DataTable<TData, TValue>({
           </div>
 
           <span className="w-28 text-center text-sm text-muted-foreground">
-            Page {pageCount > 0 ? currentPage : 0} of {pageCount}
+                        Page {pageCount > 0 ? currentPage : 0} of {pageCount}
           </span>
 
           <div className="flex items-center gap-1">
@@ -640,7 +659,7 @@ function DataTableViewOptions<TData>({ table }: { table: ReactTable<TData> }) {
           size="sm"
           variant="outline"
         >
-          <SlidersHorizontal className="mr-2 size-4" />
+                    <SlidersHorizontal className="mr-2 size-4" />
           View
         </Button>
       </DropdownMenuTrigger>
@@ -654,7 +673,7 @@ function DataTableViewOptions<TData>({ table }: { table: ReactTable<TData> }) {
             key={column.id}
             onCheckedChange={(value) => column.toggleVisibility(!!value)}
           >
-            {column.id}
+                        {column.id}
           </DropdownMenuCheckboxItem>
         ))}
       </DropdownMenuContent>
@@ -688,7 +707,7 @@ function LifecycleStatusFilter({
             <SelectItem value="all">{hasLifecycle ? "Live" : "All"}</SelectItem>
             {options.map((option) => (
               <SelectItem key={option} value={option}>
-                {capitalize(option)}
+                                {capitalize(option)}
               </SelectItem>
             ))}
             {hasLifecycle ? (

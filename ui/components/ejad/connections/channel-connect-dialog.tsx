@@ -18,6 +18,7 @@ import {
   CONNECTIONS_QUERY_KEY,
   type ConnectionRow,
 } from "@/components/ejad/connections/use-connections";
+import { toastError } from "@/components/ejad/error-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,7 @@ import {
   MAX_CONNECTION_TARGETS,
 } from "@/lib/ejad/connections";
 import { DEVICES_QUERY, type Device } from "@/lib/ejad/devices";
+import { errorText } from "@/lib/ejad/errors";
 import { graphqlClient } from "@/lib/graphql/client";
 
 const PAGE = 50;
@@ -147,7 +149,7 @@ export function ChannelConnectDialog({
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       if (ok) onOpenChange(false);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -217,7 +219,7 @@ export function ChannelConnectDialog({
                   </p>
                 ) : devices.error ? (
                   <p className="p-3 text-sm text-destructive">
-                    {devices.error.message}
+                    {errorText(devices.error)}
                   </p>
                 ) : items.length === 0 ? (
                   <p className="p-3 text-sm text-muted-foreground">
@@ -280,7 +282,7 @@ export function ChannelConnectDialog({
               here; existing permissions are kept.
             </p>
           </div>
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Label>Permissions</Label>
             <ConnectionTypePicker
               idPrefix="connect-channel"

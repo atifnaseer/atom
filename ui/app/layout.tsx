@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { template: `%s | ${BRAND_TITLE}`, default: BRAND_TITLE },
-  description: "Cloud-native identity and authorization control plane",
+  description: "Connect, monitor and control your IoT devices.",
 };
 
 export default function RootLayout({

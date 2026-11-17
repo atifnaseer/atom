@@ -14,12 +14,15 @@ import * as React from "react";
 import { ChannelCreateDialog } from "@/components/ejad/channels/channel-create-dialog";
 import { ChannelDeleteDialog } from "@/components/ejad/channels/channel-delete-dialog";
 import { useWorkspaceRoute } from "@/components/ejad/channels/use-workspace-route";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { ErrorAlert } from "@/components/ejad/error-alert";
 import { GroupBadges } from "@/components/ejad/groups/group-badges";
 import {
   useGroupFilter,
   useObjectGroups,
 } from "@/components/ejad/groups/use-object-groups";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageHeader } from "@/components/ejad/page-header";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -52,6 +55,7 @@ function positiveInt(value: string | null, fallback: number) {
 export function ChannelsView({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const canManage = useAccess().can("manage");
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get(`${PARAM}.page`), 1);
   const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
@@ -63,7 +67,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
 
   const [deleting, setDeleting] = React.useState<Channel | null>(null);
 
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: [CHANNELS_QUERY_KEY, workspaceId, q, groupId, page, limit],
     queryFn: async ({ signal }) => {
       const result = await graphqlClient<{
@@ -171,38 +175,50 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
                   <ExternalLink />
                   Open
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  disabled={Boolean(channel.managedBy)}
-                  onSelect={() => setDeleting(channel)}
-                >
-                  <Trash2 />
-                  Delete
-                </DropdownMenuItem>
+                {canManage ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      disabled={Boolean(channel.managedBy)}
+                      onSelect={() => setDeleting(channel)}
+                    >
+                      <Trash2 />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         },
       },
     ],
-    [router, groupTree],
+    [router, groupTree, canManage],
   );
 
   return (
-    <div className="grid gap-6">
-      <section className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
-        <p className="text-sm text-muted-foreground">
-          Create channels that devices publish to and subscribe from.
-        </p>
-      </section>
+    <div className="grid grid-cols-1 gap-6">
+      <PageHeader
+        icon={Radio}
+        title="Channels"
+        description="Create channels that devices publish to and subscribe from."
+        actions={
+          canManage ? (
+            <ChannelCreateDialog
+              workspaceRoute={workspaceRoute}
+              onCreated={refresh}
+            />
+          ) : null
+        }
+      />
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load channels</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert
+          title="Could not load channels"
+          error={error}
+          onRetry={() => refetch()}
+        />
       ) : null}
 
       <DataTable
@@ -213,21 +229,31 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         limit={limit}
         paramKey={PARAM}
         searchPlaceholder="Search by name, route or tag…"
-        noResultsMessage={
-          isPending
-            ? "Loading channels…"
-            : q || groupId
-              ? "No channels match your search."
-              : "No channels yet. Create one to start sending messages."
+        loading={isPending}
+        noResultsMessage="No channels match your search."
+        emptyState={
+          q || groupId || error ? undefined : (
+            <EmptyState
+              icon={Radio}
+              title="No channels yet"
+              description={
+                canManage
+                  ? "A channel is a topic that devices publish messages to and subscribe to. Create one, then connect devices to it."
+                  : "A channel is a topic that devices publish messages to and subscribe to. Ask a workspace admin to create one."
+              }
+              action={
+                canManage ? (
+                  <ChannelCreateDialog
+                    workspaceRoute={workspaceRoute}
+                    onCreated={refresh}
+                  />
+                ) : null
+              }
+            />
+          )
         }
         filters={groupFilter}
         serverFilters={{ search: true }}
-        toolbar={
-          <ChannelCreateDialog
-            workspaceRoute={workspaceRoute}
-            onCreated={refresh}
-          />
-        }
       />
 
       <ChannelDeleteDialog

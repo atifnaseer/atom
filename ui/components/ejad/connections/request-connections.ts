@@ -2,6 +2,7 @@ import type {
   ConnectionRequest,
   ConnectionResult,
 } from "@/lib/ejad/connections";
+import { requestError } from "@/lib/ejad/errors";
 
 /** Connects (POST) or disconnects (DELETE) through the Ejad route handler. */
 export async function requestConnections(
@@ -18,9 +19,7 @@ export async function requestConnections(
     ConnectionResult & { message: string }
   >;
   if (!response.ok) {
-    throw new Error(
-      payload.message ?? `Request failed with status ${response.status}`,
-    );
+    throw requestError(response, payload);
   }
   return {
     changed: payload.changed ?? 0,

@@ -190,7 +190,7 @@ export function DeviceBulkUploadDialog({
         </DialogHeader>
 
         {stage.kind === "pick" ? (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <input
               ref={fileInput}
               type="file"
@@ -331,6 +331,7 @@ function ReviewStage({
       </div>
       {invalid.length > 0 ? (
         <p className="text-sm text-muted-foreground">
+          {" "}
           Rows with errors are skipped.
         </p>
       ) : null}

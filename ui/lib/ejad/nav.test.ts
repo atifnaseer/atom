@@ -72,8 +72,21 @@ describe("visibleNavSections", () => {
 });
 
 describe("Overview section", () => {
-  it("links Home and Workspaces", () => {
-    expect(hrefs(NAV_SECTIONS[0].items)).toEqual(["/dashboard", "/workspaces"]);
+  it("links Home, Workspaces and Users", () => {
+    expect(hrefs(NAV_SECTIONS[0].items)).toEqual([
+      "/dashboard",
+      "/workspaces",
+      "/users",
+    ]);
+  });
+
+  it("shows Users to platform admins only", () => {
+    const overview = (platformAdmin: boolean) =>
+      hrefs(
+        visibleNavSections(false, undefined, { platformAdmin })[0]?.items ?? [],
+      );
+    expect(overview(false)).toEqual(["/dashboard", "/workspaces"]);
+    expect(overview(true)).toContain("/users");
   });
 });
 

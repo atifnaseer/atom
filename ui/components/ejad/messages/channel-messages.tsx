@@ -13,13 +13,14 @@ import {
 import * as React from "react";
 import { toast } from "sonner";
 import { useChannelConnections } from "@/components/ejad/connections/use-connections";
+import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
 import { DeviceCommands } from "@/components/ejad/messages/device-commands";
 import { SendMessageDialog } from "@/components/ejad/messages/send-message-dialog";
 import {
   fetchAllMessages,
   useMessages,
 } from "@/components/ejad/messages/use-messages";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAccess } from "@/components/ejad/use-access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -91,6 +92,7 @@ export function ChannelMessages({
   const [page, setPage] = React.useState(0);
   const [live, setLive] = React.useState(true);
   const [sending, setSending] = React.useState(false);
+  const canSend = useAccess().can("manage");
   const [exporting, setExporting] = React.useState(false);
 
   const params = React.useMemo(() => {
@@ -164,7 +166,7 @@ export function ChannelMessages({
           `Downloaded ${result.messages.length.toLocaleString()} message${result.messages.length === 1 ? "" : "s"}.`,
         );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toastError(err, "Could not download messages");
     } finally {
       setExporting(false);
     }
@@ -176,7 +178,7 @@ export function ChannelMessages({
   const last = Math.min(total, page * pageSize + rows.length);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span
@@ -207,17 +209,19 @@ export function ChannelMessages({
             <Download />
             {exporting ? "Preparing…" : "Download CSV"}
           </Button>
-          <Button onClick={() => setSending(true)}>
-            <Send />
-            Send message
-          </Button>
+          {canSend ? (
+            <Button onClick={() => setSending(true)}>
+              <Send />
+              Send message
+            </Button>
+          ) : null}
         </div>
       </div>
 
       <Card>
         <CardContent>
           <form
-            className="grid gap-4"
+            className="grid grid-cols-1 gap-4"
             onSubmit={(event) => {
               event.preventDefault();
               apply();
@@ -388,10 +392,7 @@ export function ChannelMessages({
       </Card>
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load messages</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert title="Could not load messages" error={error} />
       ) : (
         <div className="rounded-lg border">
           <Table>

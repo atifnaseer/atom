@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastError } from "@/components/ejad/error-alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,7 +68,7 @@ export function GroupDeleteDialog({
       toast.success(`Group “${target.name}” deleted`);
       onDeleted(target);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const blocked = childCount > 0;

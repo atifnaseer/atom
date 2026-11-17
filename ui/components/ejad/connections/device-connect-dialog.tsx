@@ -9,6 +9,7 @@ import {
   requestConnections,
 } from "@/components/ejad/connections/request-connections";
 import { CONNECTIONS_QUERY_KEY } from "@/components/ejad/connections/use-connections";
+import { toastError } from "@/components/ejad/error-alert";
 import { AsyncCombobox, type ComboPage } from "@/components/ui/async-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,7 +108,7 @@ export function DeviceConnectDialog({
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       if (ok) onOpenChange(false);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   return (
@@ -126,13 +127,13 @@ export function DeviceConnectDialog({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="grid gap-5"
+          className="grid grid-cols-1 gap-5"
           onSubmit={(event) => {
             event.preventDefault();
             if (channelId && types.length) connect.mutate();
           }}
         >
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Label htmlFor="connect-channel">Channel</Label>
             <AsyncCombobox
               id="connect-channel"
@@ -146,7 +147,7 @@ export function DeviceConnectDialog({
               disabled={connect.isPending}
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Label>Permissions</Label>
             <ConnectionTypePicker
               idPrefix="connect-device"

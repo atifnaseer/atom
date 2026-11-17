@@ -1,60 +1,70 @@
-import { Activity, ShieldCheck, Users } from "lucide-react";
+import { Building2, House, Shield } from "lucide-react";
 import type { Metadata } from "next";
-import { BrandLogo } from "@/components/brand-logo";
+import Link from "next/link";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { WorkspaceOverview } from "@/components/ejad/home/workspace-overview";
+import { PageHeader } from "@/components/ejad/page-header";
 import { RelationshipPanel } from "@/components/relationships/relationship-panel";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { getServerSession } from "@/lib/auth/session";
 import { BRAND_SHORT } from "@/lib/brand";
+import { loadAccess } from "@/lib/ejad/access-server";
+import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Home" };
+export const dynamic = "force-dynamic";
 
-const stats = [
-  { label: "Tenant boundary", value: "Global + tenant", icon: ShieldCheck },
-  { label: "Access model", value: "Roles + assignments", icon: Users },
-  { label: "Audit mode", value: "Query-backed", icon: Activity },
-  { label: "Operations", value: "Health + keys", icon: ShieldCheck },
-];
+/** Whether the signed-in user may see Atom's platform-wide panels. */
+async function isPlatformAdmin() {
+  const session = await getServerSession();
+  if (!session) return false;
+  try {
+    return (await loadAccess(session.entityId, null)).platformAdmin;
+  } catch {
+    return false;
+  }
+}
 
-export default function DashboardPage() {
+export default async function HomePage() {
+  const [workspaceId, platformAdmin] = await Promise.all([
+    getServerWorkspaceId(),
+    isPlatformAdmin(),
+  ]);
   return (
     <div className="grid gap-6">
-      <section className="grid gap-2">
-        <BrandLogo className="mb-2" />
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Control plane overview
-          </h1>
-        </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Operate {BRAND_SHORT} identity, roles, assignments, tenant boundaries,
-          and authorization explainability from task-driven workflows.
-        </p>
-      </section>
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardHeader className="pb-2">
-              <CardDescription className="flex items-center gap-2">
-                <stat.icon className="size-4" />
-                {stat.label}
-              </CardDescription>
-              <CardTitle className="text-lg">{stat.value}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Designed for operational clarity across global and tenant-owned
-              objects.
-            </CardContent>
-          </Card>
-        ))}
-      </section>
-      <DashboardOverview />
-      <RelationshipPanel />
+      <PageHeader
+        icon={House}
+        title="Home"
+        description={`What is happening in your ${BRAND_SHORT} workspace: devices, channels and the latest readings.`}
+      />
+      {workspaceId ? (
+        <WorkspaceOverview key={workspaceId} workspaceId={workspaceId} />
+      ) : (
+        <Card>
+          <EmptyState
+            icon={Building2}
+            title="Pick a workspace"
+            description="A workspace holds one project’s devices, channels and people. Choose one in the Workspace switcher in the sidebar, or open the list of workspaces."
+            action={
+              <Button asChild>
+                <Link href="/workspaces">Go to workspaces</Link>
+              </Button>
+            }
+          />
+        </Card>
+      )}
+      {platformAdmin ? (
+        <section aria-label="Platform" className="grid gap-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <Shield className="size-5 text-primary" />
+            Platform
+          </h2>
+          <DashboardOverview />
+          <RelationshipPanel />
+        </section>
+      ) : null}
     </div>
   );
 }

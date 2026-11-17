@@ -4,10 +4,13 @@ import {
   bulkResultsCsv,
   CREATE_DEVICE_MUTATION,
   CREATE_SHARED_KEY_MUTATION,
+  type Credential,
   createDevice,
   createDeviceInput,
   deviceMetadata,
   deviceTags,
+  isKeyAction,
+  newestActiveKey,
   parseBulkDevicesCsv,
   parseTagsCell,
   REVOKE_CREDENTIAL_MUTATION,
@@ -244,5 +247,46 @@ describe("bulkResultsCsv", () => {
       "c,id-c,,created without secret,Secret not created: x",
       "",
     ]);
+  });
+});
+
+describe("newestActiveKey", () => {
+  const key = (id: string, over: Partial<Credential> = {}): Credential => ({
+    id,
+    kind: "shared_key",
+    identifier: null,
+    status: "active",
+    expiresAt: null,
+    createdAt: "2026-01-01T00:00:00Z",
+    managedBy: null,
+    ...over,
+  });
+
+  it("picks the newest active, unexpired shared key", () => {
+    const now = Date.parse("2026-06-01T00:00:00Z");
+    expect(
+      newestActiveKey(
+        [
+          key("old"),
+          key("new", { createdAt: "2026-03-01T00:00:00Z" }),
+          key("expired", {
+            createdAt: "2026-04-01T00:00:00Z",
+            expiresAt: "2026-05-01T00:00:00Z",
+          }),
+          key("revoked", {
+            createdAt: "2026-05-01T00:00:00Z",
+            status: "revoked",
+          }),
+          key("pw", { createdAt: "2026-05-02T00:00:00Z", kind: "password" }),
+        ],
+        now,
+      )?.id,
+    ).toBe("new");
+    expect(newestActiveKey([])).toBeNull();
+  });
+
+  it("recognises key actions", () => {
+    expect(isKeyAction("reveal-newest")).toBe(true);
+    expect(isKeyAction("steal")).toBe(false);
   });
 });

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerToken } from "@/lib/auth/session";
+import { requireWorkspaceAbility } from "@/lib/ejad/access-server";
 import { parseSendMessage } from "@/lib/ejad/messages";
 import { httpAdapterUrl } from "@/lib/ejad/messaging-config";
 import { SendMessageError, sendDeviceMessage } from "@/lib/ejad/send-message";
-import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -20,19 +19,11 @@ const STATUS_BY_CODE: Record<string, number> = {
  * and used server-side only; the response never contains it.
  */
 export async function POST(request: Request) {
-  if (!(await getServerToken())) {
-    return NextResponse.json(
-      { message: "missing authentication" },
-      { status: 401 },
-    );
-  }
-  const tenantId = await getServerWorkspaceId();
-  if (!tenantId) {
-    return NextResponse.json(
-      { message: "Select a workspace first." },
-      { status: 400 },
-    );
-  }
+  // The device's secret is revealed to publish, so this needs the role
+  // that may see device secrets (Admin, Operator).
+  const guard = await requireWorkspaceAbility("manage");
+  if ("error" in guard) return guard.error;
+  const tenantId = guard.workspaceId;
 
   let body: unknown;
   try {

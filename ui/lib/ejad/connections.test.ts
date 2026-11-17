@@ -226,8 +226,12 @@ describe("listChannelPolicies", () => {
 describe("connectMany / disconnectMany", () => {
   it("skips types the device already has and connects the rest", async () => {
     const created: unknown[] = [];
+    const actionTenants: unknown[] = [];
     const { gql } = fakeGql((call) => {
-      if (call.query === ACTIONS_QUERY) return actionsPage;
+      if (call.query === ACTIONS_QUERY) {
+        actionTenants.push(call.variables?.tenantId);
+        return actionsPage;
+      }
       if (call.query === SUBJECT_POLICIES_QUERY)
         return { directPolicies: { total: 1, items: [policy("p1")] } };
       if (call.query === CREATE_PERMISSION_BLOCK_MUTATION) {
@@ -245,6 +249,8 @@ describe("connectMany / disconnectMany", () => {
     });
     expect(result).toEqual({ changed: 1, skipped: 1, failed: [] });
     expect(created).toEqual([connectionBlockInput(TENANT, CHANNEL, "a-sub")]);
+    // Actions are read in the workspace, so workspace roles may read them.
+    expect(actionTenants.every((id) => id === TENANT)).toBe(true);
   });
 
   it("reports per-device failures without stopping the others", async () => {

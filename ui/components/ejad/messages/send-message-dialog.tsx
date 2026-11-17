@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import { toast } from "sonner";
 import type { ConnectionRow } from "@/components/ejad/connections/use-connections";
+import { toastError } from "@/components/ejad/error-alert";
 import { MESSAGES_QUERY_KEY } from "@/components/ejad/messages/use-messages";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { requestError } from "@/lib/ejad/errors";
 import type { SendMessageInput } from "@/lib/ejad/messages";
 
 async function postMessage(input: SendMessageInput) {
@@ -37,9 +39,7 @@ async function postMessage(input: SendMessageInput) {
     topic?: string;
   };
   if (!response.ok) {
-    throw new Error(
-      payload.message ?? `Request failed with status ${response.status}`,
-    );
+    throw requestError(response, payload);
   }
   return payload;
 }
@@ -91,7 +91,7 @@ export function SendMessageDialog({
       queryClient.invalidateQueries({ queryKey: [MESSAGES_QUERY_KEY] });
       setValue("");
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const ready = Boolean(deviceId && name.trim() && value.trim());
@@ -118,13 +118,13 @@ export function SendMessageDialog({
           </p>
         ) : (
           <form
-            className="grid gap-4"
+            className="grid grid-cols-1 gap-4"
             onSubmit={(event) => {
               event.preventDefault();
               if (ready) send.mutate();
             }}
           >
-            <div className="grid gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <Label htmlFor="send-device">Device</Label>
               <Select
                 value={deviceId}
@@ -143,7 +143,7 @@ export function SendMessageDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <Label htmlFor="send-name">Name</Label>
               <Input
                 id="send-name"
@@ -155,7 +155,7 @@ export function SendMessageDialog({
               />
             </div>
             <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
-              <div className="grid gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <Label htmlFor="send-value">Value</Label>
                 <Input
                   id="send-value"
@@ -166,7 +166,7 @@ export function SendMessageDialog({
                   disabled={send.isPending}
                 />
               </div>
-              <div className="grid gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <Label htmlFor="send-unit">Unit</Label>
                 <Input
                   id="send-unit"

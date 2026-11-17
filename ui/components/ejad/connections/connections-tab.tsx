@@ -14,7 +14,7 @@ import {
   CONNECTIONS_QUERY_KEY,
   type ConnectionRow,
 } from "@/components/ejad/connections/use-connections";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,15 +100,12 @@ export function ConnectionsTab({
       </CardHeader>
       <CardContent>
         {isPending ? (
-          <div className="grid gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <Skeleton className="h-9" />
             <Skeleton className="h-9" />
           </div>
         ) : error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Could not load connections</AlertTitle>
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
+          <ErrorAlert title="Could not load connections" error={error} />
         ) : !rows?.length ? (
           <p className="text-sm text-muted-foreground">
             {side === "device"
@@ -215,7 +212,7 @@ function DisconnectDialog({
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       onOpenChange(false);
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const [deviceLabel, channelLabel] =

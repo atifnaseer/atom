@@ -34,7 +34,6 @@ import {
   singularize,
   tenantActionPastTense,
 } from "@/components/crud/table/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { requireResource } from "@/lib/crud/resources";
@@ -54,7 +53,6 @@ export function CrudTable({
   total,
   page,
   limit,
-  source,
   serverFilters,
   showDeletedColumns = false,
   sortOptions,
@@ -360,11 +358,6 @@ export function CrudTable({
         }}
         toolbar={
           <div className="flex items-center gap-2">
-            {source === "scaffold" ? (
-              <Badge variant="outline" className="text-muted-foreground">
-                Sample data
-              </Badge>
-            ) : null}
             {resource.createHref ? (
               // Resource owns a dedicated multi-step Create flow (e.g. PKI
               // authorities and certificates). Send the operator there instead

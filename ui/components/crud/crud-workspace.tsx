@@ -8,6 +8,7 @@ import {
   type CrudSortOption,
   requireResource,
 } from "@/lib/crud/resources";
+import { errorText } from "@/lib/ejad/errors";
 import { isForbiddenError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 import { GLOBAL_TENANT, TENANT_COOKIE } from "@/lib/tenant/context";
@@ -67,9 +68,8 @@ export async function CrudWorkspace({ resourceKey, searchParams }: Props) {
     scopedTenantId ?? selectedTenantId,
   );
 
-  let rows: Row[] = resource.sampleRows;
-  let total = resource.sampleRows.length;
-  let source: "graphql" | "scaffold" = "scaffold";
+  let rows: Row[] = [];
+  let total = 0;
   let fetchError: Error | null = null;
   let accessDenied = false;
 
@@ -131,13 +131,10 @@ export async function CrudWorkspace({ resourceKey, searchParams }: Props) {
       const payload = data[resource.queryName];
       rows = payload?.items ?? [];
       total = payload?.total ?? rows.length;
-      source = "graphql";
     } catch (err) {
       fetchError =
         err instanceof Error ? err : new Error("Data request failed");
       accessDenied = isForbiddenError(err);
-      rows = accessDenied ? [] : resource.sampleRows;
-      total = accessDenied ? 0 : resource.sampleRows.length;
     }
   }
   const { error: filterFetchError, filters } = await filterResultPromise;
@@ -174,11 +171,8 @@ export async function CrudWorkspace({ resourceKey, searchParams }: Props) {
       ) : fetchError ? (
         <Alert variant="destructive">
           <Database className="size-4" />
-          <AlertTitle>Backend unavailable or operation failed</AlertTitle>
-          <AlertDescription>
-            Showing sample data so the workflow remains inspectable.{" "}
-            {fetchError.message}
-          </AlertDescription>
+          <AlertTitle>Could not load {resource.title}</AlertTitle>
+          <AlertDescription>{errorText(fetchError)}</AlertDescription>
         </Alert>
       ) : null}
       {filterFetchError ? (
@@ -199,7 +193,6 @@ export async function CrudWorkspace({ resourceKey, searchParams }: Props) {
           serverFilters={serverFilters}
           showDeletedColumns={showDeletedColumns}
           sortOptions={resource.sortOptions}
-          source={source}
           total={total}
         />
       )}

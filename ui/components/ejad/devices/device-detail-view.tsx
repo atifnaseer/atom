@@ -17,8 +17,11 @@ import {
 } from "@/components/ejad/devices/device-confirm-dialogs";
 import { DeviceCredentials } from "@/components/ejad/devices/device-credentials";
 import { DEVICES_QUERY_KEY } from "@/components/ejad/devices/devices-view";
+import { LoadProblem } from "@/components/ejad/error-alert";
+import { PageHeader } from "@/components/ejad/page-header";
+import { HeaderSkeleton } from "@/components/ejad/skeletons";
+import { useAccess } from "@/components/ejad/use-access";
 import { EntityAuditLog } from "@/components/entities/entity-audit-log";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JsonEditor } from "@/components/ui/json-editor";
@@ -48,6 +51,7 @@ export function DeviceDetailView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { can } = useAccess();
   const tabParam = searchParams.get("tab");
   const tab: TabValue = TABS.includes(tabParam as TabValue)
     ? (tabParam as TabValue)
@@ -57,7 +61,7 @@ export function DeviceDetailView({
   const [deleting, setDeleting] = React.useState(false);
 
   const queryKey = ["ejad-device", deviceId];
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey,
     queryFn: ({ signal }) =>
       graphqlClient<{ entity: Device }>({
@@ -94,9 +98,9 @@ export function DeviceDetailView({
 
   if (isPending) {
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Skeleton className="h-10 w-72" />
+        <HeaderSkeleton actions />
         <Skeleton className="h-64 rounded-xl" />
       </div>
     );
@@ -105,84 +109,93 @@ export function DeviceDetailView({
   const notHere =
     device && (device.kind !== "device" || device.tenantId !== workspaceId);
   if (error || !device || notHere) {
-    const notFound = graphqlErrorCode(error) === "NOT_FOUND" || notHere;
     return (
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {backLink}
-        <Alert variant="destructive">
-          <AlertTitle>
-            {notFound ? "Device not found" : "Could not load the device"}
-          </AlertTitle>
-          <AlertDescription>
-            {notFound
-              ? "There is no such device in the selected workspace."
-              : error?.message}
-          </AlertDescription>
-        </Alert>
+        <LoadProblem
+          what="device"
+          error={error}
+          notFound={Boolean(notHere)}
+          back={{ href: "/devices", label: "Back to devices" }}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
 
   const enabled = isDeviceEnabled(device);
   const readOnly = Boolean(device.managedBy);
+  const canManage = can("manage");
 
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-1 gap-6">
       {backLink}
-      <section className="flex flex-wrap items-start justify-between gap-4">
-        <div className="grid min-w-0 gap-1">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <Cpu className="size-6 shrink-0 text-muted-foreground" />
-            <span className="truncate">{device.name}</span>
+      <PageHeader
+        icon={Cpu}
+        title={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            {device.name}
             <StatusBadge value={device.status} />
-          </h1>
-          <code className="font-mono text-xs text-muted-foreground">
-            {device.id}
-          </code>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            disabled={readOnly}
-            onClick={() => setToggling(true)}
-          >
-            {enabled ? <CircleOff /> : <CirclePlay />}
-            {enabled ? "Disable" : "Enable"}
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={readOnly}
-            onClick={() => setDeleting(true)}
-          >
-            <Trash2 />
-            Delete
-          </Button>
-        </div>
-      </section>
+          </span>
+        }
+        actions={
+          canManage ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={readOnly}
+                onClick={() => setToggling(true)}
+              >
+                {enabled ? <CircleOff /> : <CirclePlay />}
+                {enabled ? "Disable" : "Enable"}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={readOnly}
+                onClick={() => setDeleting(true)}
+              >
+                <Trash2 />
+                Delete
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        <code className="font-mono text-xs text-muted-foreground">
+          {device.id}
+        </code>
+      </PageHeader>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs
+        value={tab === "credentials" && !canManage ? "overview" : tab}
+        onValueChange={setTab}
+      >
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          {canManage ? (
+            <TabsTrigger value="credentials">Credentials</TabsTrigger>
+          ) : null}
           <TabsTrigger value="connections">Connections</TabsTrigger>
           <TabsTrigger value="audit">Audit</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="mt-4">
           <Overview device={device} />
         </TabsContent>
-        <TabsContent value="credentials" className="mt-4">
-          <DeviceCredentials
-            deviceId={device.id}
-            deviceName={device.name}
-            readOnly={readOnly}
-          />
-        </TabsContent>
+        {canManage ? (
+          <TabsContent value="credentials" className="mt-4">
+            <DeviceCredentials
+              deviceId={device.id}
+              deviceName={device.name}
+              readOnly={readOnly}
+            />
+          </TabsContent>
+        ) : null}
         <TabsContent value="connections" className="mt-4">
           <DeviceConnections
             workspaceId={workspaceId}
             deviceId={device.id}
             deviceName={device.name}
-            readOnly={readOnly}
+            readOnly={readOnly || !can("connect")}
           />
         </TabsContent>
         <TabsContent value="audit" className="mt-4">

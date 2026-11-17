@@ -13,10 +13,13 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useTenant } from "@/components/app-shell/tenant-provider";
 import { StatusBadge } from "@/components/crud/status-badge";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { ErrorAlert } from "@/components/ejad/error-alert";
+import { PageHeader } from "@/components/ejad/page-header";
+import { useAccess } from "@/components/ejad/use-access";
 import { WorkspaceCreateDialog } from "@/components/ejad/workspaces/workspace-create-dialog";
 import { WorkspaceDeleteDialog } from "@/components/ejad/workspaces/workspace-delete-dialog";
 import { WorkspaceEditDialog } from "@/components/ejad/workspaces/workspace-edit-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,6 +31,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { WorkspaceRoleKey } from "@/lib/ejad/access";
+import { roleLabel } from "@/lib/ejad/members";
 import { WORKSPACES_QUERY, type Workspace } from "@/lib/ejad/workspaces";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GLOBAL_TENANT } from "@/lib/tenant/context";
@@ -42,7 +47,7 @@ export function WorkspacesView() {
   const [editing, setEditing] = React.useState<Workspace | null>(null);
   const [deleting, setDeleting] = React.useState<Workspace | null>(null);
 
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: QUERY_KEY,
     queryFn: ({ signal }) =>
       graphqlClient<{ tenants: { total: number; items: Workspace[] } }>({
@@ -51,10 +56,28 @@ export function WorkspacesView() {
       }),
   });
   const workspaces = data?.tenants.items ?? [];
+  const access = useAccess();
+  const ids = workspaces.map((workspace) => workspace.id).slice(0, 100);
+  const { data: roles } = useQuery({
+    queryKey: ["ejad-workspace-roles", ids],
+    enabled: ids.length > 0,
+    queryFn: async ({ signal }) => {
+      const response = await fetch(
+        `/api/ejad/access/workspaces?ids=${ids.join(",")}`,
+        { cache: "no-store", signal },
+      );
+      if (!response.ok) return {};
+      const payload = (await response.json()) as {
+        roles: Record<string, WorkspaceRoleKey | null>;
+      };
+      return payload.roles;
+    },
+  });
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     queryClient.invalidateQueries({ queryKey: ["tenant-switcher"] });
+    queryClient.invalidateQueries({ queryKey: ["ejad-workspace-roles"] });
   }
 
   // Same mechanism as the sidebar tenant switcher: set the atom_tenant
@@ -65,22 +88,20 @@ export function WorkspacesView() {
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="flex flex-wrap items-end justify-between gap-4">
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Workspaces</h1>
-          <p className="text-sm text-muted-foreground">
-            Pick a workspace to work in, or create a new one.
-          </p>
-        </div>
-        <WorkspaceCreateDialog onCreated={refresh} />
-      </section>
+    <div className="grid grid-cols-1 gap-6">
+      <PageHeader
+        icon={Building2}
+        title="Workspaces"
+        description="A workspace keeps one project's devices, channels and people together. Pick one to work in, or create a new one."
+        actions={<WorkspaceCreateDialog onCreated={refresh} />}
+      />
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load workspaces</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert
+          title="Could not load workspaces"
+          error={error}
+          onRetry={() => refetch()}
+        />
       ) : isPending ? (
         <CardGrid>
           {["a", "b", "c"].map((key) => (
@@ -88,7 +109,13 @@ export function WorkspacesView() {
           ))}
         </CardGrid>
       ) : workspaces.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={Building2}
+          title="No workspaces yet"
+          description="Create your first workspace, then add devices and channels to it."
+          action={<WorkspaceCreateDialog onCreated={refresh} />}
+          className="rounded-xl border border-dashed"
+        />
       ) : (
         <CardGrid>
           {workspaces.map((workspace) => (
@@ -96,9 +123,18 @@ export function WorkspacesView() {
               key={workspace.id}
               workspace={workspace}
               current={selection.id === workspace.id}
+              role={roles?.[workspace.id] ?? null}
               onOpen={() => open(workspace)}
-              onEdit={() => setEditing(workspace)}
-              onDelete={() => setDeleting(workspace)}
+              // Editing needs the workspace Admin role; deleting a
+              // workspace is a platform-admin action in Atom.
+              onEdit={
+                access.platformAdmin || roles?.[workspace.id] === "admin"
+                  ? () => setEditing(workspace)
+                  : undefined
+              }
+              onDelete={
+                access.platformAdmin ? () => setDeleting(workspace) : undefined
+              }
             />
           ))}
         </CardGrid>
@@ -140,30 +176,20 @@ function CardGrid({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="grid place-items-center gap-2 rounded-xl border border-dashed p-10 text-center">
-      <Building2 className="size-8 text-muted-foreground" />
-      <p className="font-medium">No workspaces yet</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        Create your first workspace to start adding devices and channels.
-      </p>
-    </div>
-  );
-}
-
 function WorkspaceCard({
   workspace,
   current,
+  role,
   onOpen,
   onEdit,
   onDelete,
 }: {
   workspace: Workspace;
   current: boolean;
+  role: WorkspaceRoleKey | null;
   onOpen: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <Card
@@ -185,6 +211,11 @@ function WorkspaceCard({
               Current
             </Badge>
           ) : null}
+          {role ? (
+            <Badge variant="outline" className="shrink-0 text-[0.68rem]">
+              {roleLabel(role)}
+            </Badge>
+          ) : null}
         </div>
         <code className="truncate font-mono text-sm text-muted-foreground">
           {workspace.alias ?? "—"}
@@ -197,31 +228,37 @@ function WorkspaceCard({
           </span>
         </div>
       </button>
-      <div className="absolute top-3 right-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              aria-label={`Actions for ${workspace.name}`}
-            >
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onEdit}>
-              <Pencil />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-              <Trash2 />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {onEdit || onDelete ? (
+        <div className="absolute top-3 right-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8"
+                aria-label={`Actions for ${workspace.name}`}
+              >
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onEdit ? (
+                <DropdownMenuItem onSelect={onEdit}>
+                  <Pencil />
+                  Edit
+                </DropdownMenuItem>
+              ) : null}
+              {onEdit && onDelete ? <DropdownMenuSeparator /> : null}
+              {onDelete ? (
+                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                  <Trash2 />
+                  Delete
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : null}
     </Card>
   );
 }

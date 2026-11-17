@@ -3,9 +3,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, Terminal } from "lucide-react";
 import * as React from "react";
-import { toast } from "sonner";
 import type { ConnectionRow } from "@/components/ejad/connections/use-connections";
 import { CopyButton } from "@/components/ejad/copy-button";
+import { deviceKeyAction } from "@/components/ejad/devices/device-keys-client";
+import { toastError } from "@/components/ejad/error-alert";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -16,38 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CREDENTIALS_QUERY,
-  type Credential,
-  REVEAL_SHARED_KEY_MUTATION,
-  type SharedKey,
-} from "@/lib/ejad/devices";
 import { deviceCommands, type MessagingEndpoints } from "@/lib/ejad/messages";
-import { graphqlClient } from "@/lib/graphql/client";
 
 const KEY_PLACEHOLDER = "<DEVICE_SECRET>";
 
 async function revealNewestKey(deviceId: string): Promise<string> {
-  const { credentials } = await graphqlClient<{
-    credentials: { items: Credential[] };
-  }>({ query: CREDENTIALS_QUERY, variables: { entityId: deviceId } });
-  const now = Date.now();
-  const credential = credentials.items
-    .filter(
-      (c) =>
-        c.kind === "shared_key" &&
-        c.status === "active" &&
-        (!c.expiresAt || Date.parse(c.expiresAt) > now),
-    )
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  if (!credential) throw new Error("This device has no active secret.");
-  const { revealSharedKey } = await graphqlClient<{
-    revealSharedKey: SharedKey;
-  }>({
-    query: REVEAL_SHARED_KEY_MUTATION,
-    variables: { entityId: deviceId, credentialId: credential.id },
-  });
-  return revealSharedKey.key;
+  const { sharedKey } = await deviceKeyAction(deviceId, "reveal-newest");
+  return sharedKey.key;
 }
 
 /**
@@ -67,6 +44,8 @@ export function DeviceCommands({
   endpoints: MessagingEndpoints;
 }) {
   const queryClient = useQueryClient();
+  const { can } = useAccess();
+  const canReveal = can("manage");
   const available = React.useMemo(
     () => (devices ?? []).filter((row) => row.peerExists),
     [devices],
@@ -87,7 +66,7 @@ export function DeviceCommands({
       setKey(value);
       queryClient.invalidateQueries({ queryKey: ["object-audit"] });
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toastError(error),
   });
 
   const row = available.find((r) => r.peerId === deviceId);
@@ -132,9 +111,10 @@ export function DeviceCommands({
           Device commands
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="grid grid-cols-1 gap-4">
         {devices && available.length === 0 ? (
           <p className="text-sm text-muted-foreground">
+            {" "}
             Connect a device to this channel to get commands for it.
           </p>
         ) : (
@@ -161,7 +141,7 @@ export function DeviceCommands({
                   </SelectContent>
                 </Select>
               </div>
-              {key ? (
+              {!canReveal ? null : key ? (
                 <Button variant="outline" onClick={() => setKey(null)}>
                   <EyeOff />
                   Hide secret
@@ -181,7 +161,9 @@ export function DeviceCommands({
               Topic <code className="font-mono">{commands?.topic}</code>.{" "}
               {key
                 ? "The commands include the device secret; treat them as a password."
-                : `The secret is shown as ${KEY_PLACEHOLDER} until you reveal it. Revealing is recorded in the audit log.`}
+                : canReveal
+                  ? `The secret is shown as ${KEY_PLACEHOLDER} until you reveal it. Revealing is recorded in the audit log.`
+                  : `The secret is shown as ${KEY_PLACEHOLDER}; only workspace Admins and Operators can reveal device secrets.`}
             </p>
             {entries.map((entry) => (
               <div key={entry.id} className="grid gap-1.5">

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { WORKSPACE_ROLES, WORKSPACE_ROLES_QUERY } from "@/lib/ejad/members";
 import {
   CREATE_DEVICE_TYPE_MUTATION,
   CREATE_DEVICE_TYPE_VERSION_MUTATION,
@@ -118,6 +119,28 @@ describe("createWorkspace", () => {
           return { profileVersions: opts.withVersions ? [{ id: "v" }] : [] };
         case CREATE_DEVICE_TYPE_VERSION_MUTATION:
           return { createProfileVersion: { id: "v" } };
+        case WORKSPACE_ROLES_QUERY:
+          // Roles already complete: role creation is tested in members.test.
+          return {
+            roles: {
+              total: WORKSPACE_ROLES.length,
+              items: WORKSPACE_ROLES.map((role) => ({
+                id: `r-${role.key}`,
+                name: role.name,
+                tenantId: "t1",
+                permissionBlocks: [
+                  {
+                    id: `b-${role.key}`,
+                    tenantId: "t1",
+                    scopeMode: "tenant",
+                    effect: "allow",
+                    conditions: {},
+                    actions: role.actions.map((name) => ({ name })),
+                  },
+                ],
+              })),
+            },
+          };
       }
       throw new Error(`unexpected query ${request.query}`);
     }) as GraphqlFn;
@@ -173,6 +196,15 @@ describe("createWorkspace", () => {
     ).toBe(false);
   });
 
+  it("makes sure the workspace roles exist after seeding", async () => {
+    const { gql, calls } = fakeGraphql({});
+    await createWorkspace(gql, { name: "Plant", route: "plant" });
+    expect(calls.at(-1)).toEqual({
+      query: WORKSPACE_ROLES_QUERY,
+      variables: { tenantId: "t1", limit: 200, offset: 0 },
+    });
+  });
+
   it("returns the workspace with a seed error if seeding fails", async () => {
     const gql = (async (request) => {
       if (request.query === CREATE_WORKSPACE_MUTATION)
@@ -181,7 +213,7 @@ describe("createWorkspace", () => {
     }) as GraphqlFn;
     const result = await createWorkspace(gql, { name: "P", route: "p" });
     expect(result.workspace.id).toBe("t1");
-    expect(result.seedError).toBe("boom");
+    expect(result.seedError).toBe("boom; workspace roles: boom");
   });
 });
 

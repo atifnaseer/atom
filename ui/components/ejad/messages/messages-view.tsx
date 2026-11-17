@@ -6,11 +6,13 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { useWorkspaceRoute } from "@/components/ejad/channels/use-workspace-route";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { LoadProblem } from "@/components/ejad/error-alert";
 import { ChannelMessages } from "@/components/ejad/messages/channel-messages";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageHeader } from "@/components/ejad/page-header";
 import { AsyncCombobox, type ComboPage } from "@/components/ui/async-combobox";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -84,7 +86,7 @@ export function MessagesView({
     [workspaceId],
   );
 
-  const { data, error, isPending } = useQuery({
+  const { data, error, isPending, refetch } = useQuery({
     queryKey: ["ejad-channel", channelId],
     enabled: Boolean(channelId),
     queryFn: ({ signal }) =>
@@ -118,57 +120,52 @@ export function MessagesView({
   );
 
   return (
-    <div className="grid gap-6">
-      <section className="flex flex-wrap items-end justify-between gap-4">
-        <div className="grid gap-1">
-          <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <MessageSquare className="size-6 text-muted-foreground" />
-            Messages
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Browse messages published on this workspace's channels.
-          </p>
-        </div>
-        <div className="grid w-full gap-1.5 sm:w-80">
-          <Label htmlFor="messages-channel">Channel</Label>
-          <AsyncCombobox
-            id="messages-channel"
-            value={channelId}
-            onChange={selectChannel}
-            queryKey={["ejad-messages-channels", workspaceId]}
-            fetchPage={fetchPage}
-            fetchSelected={fetchSelected}
-            placeholder="Select a channel"
-            searchPlaceholder="Search channels…"
-            emptyText="No channels found."
-          />
-        </div>
-      </section>
+    <div className="grid grid-cols-1 gap-6">
+      <PageHeader
+        icon={MessageSquare}
+        title="Messages"
+        description="Browse messages published on this workspace’s channels."
+        actions={
+          <div className="grid w-full gap-1.5 sm:w-80">
+            <Label htmlFor="messages-channel">Channel</Label>
+            <AsyncCombobox
+              id="messages-channel"
+              value={channelId}
+              onChange={selectChannel}
+              queryKey={["ejad-messages-channels", workspaceId]}
+              fetchPage={fetchPage}
+              fetchSelected={fetchSelected}
+              placeholder="Select a channel"
+              searchPlaceholder="Search channels…"
+              emptyText="No channels found."
+            />
+          </div>
+        }
+      />
 
       {!channelId ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Pick a channel to see its messages.{" "}
-            <Button asChild variant="link" className="h-auto p-0">
-              <Link href="/channels">Manage channels</Link>
-            </Button>
-          </CardContent>
+          <EmptyState
+            icon={MessageSquare}
+            title="Pick a channel"
+            description="Choose a channel above to see the messages devices published on it. Messages are kept only for channels with “Store messages” turned on."
+            action={
+              <Button asChild variant="outline">
+                <Link href="/channels">Go to channels</Link>
+              </Button>
+            }
+          />
         </Card>
       ) : isPending ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : error || !channel || notHere ? (
-        <Alert variant="destructive">
-          <AlertTitle>
-            {graphqlErrorCode(error) === "NOT_FOUND" || notHere
-              ? "Channel not found"
-              : "Could not load the channel"}
-          </AlertTitle>
-          <AlertDescription>
-            {graphqlErrorCode(error) === "NOT_FOUND" || notHere
-              ? "There is no such channel in the selected workspace."
-              : error?.message}
-          </AlertDescription>
-        </Alert>
+        <LoadProblem
+          what="channel"
+          error={error}
+          notFound={Boolean(notHere)}
+          back={{ href: "/channels", label: "Back to channels" }}
+          onRetry={() => refetch()}
+        />
       ) : (
         <>
           <div className="text-sm text-muted-foreground">

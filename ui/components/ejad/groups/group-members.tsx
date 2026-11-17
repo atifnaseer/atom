@@ -8,12 +8,15 @@ import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/crud/status-badge";
+import { ConfirmDialog } from "@/components/ejad/confirm-dialog";
+import { EmptyState } from "@/components/ejad/empty-state";
+import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
 import { GroupAddMembersDialog } from "@/components/ejad/groups/group-add-members-dialog";
 import {
   GROUP_MEMBERS_QUERY_KEY,
   useRefreshGroups,
 } from "@/components/ejad/groups/use-object-groups";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -105,6 +108,7 @@ export function GroupMembers({
   const q = (searchParams.get(`${param}.q`) ?? "").trim();
   const refresh = useRefreshGroups();
   const [adding, setAdding] = React.useState(false);
+  const canManage = useAccess().can("manage");
 
   const { data, error, isPending } = useQuery({
     queryKey: [GROUP_MEMBERS_QUERY_KEY, kind, group.id, q, page, limit],
@@ -121,6 +125,7 @@ export function GroupMembers({
     placeholderData: keepPreviousData,
   });
 
+  const [removing, setRemoving] = React.useState<Member | null>(null);
   const remove = useMutation({
     mutationFn: async (member: Member) => {
       await setGroupMembership(graphqlClient, kind, member.id, group.id, false);
@@ -128,9 +133,10 @@ export function GroupMembers({
     },
     onSuccess: (member) => {
       toast.success(`Removed “${member.label}” from “${group.name}”`);
+      setRemoving(null);
       refresh();
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   });
 
   const columns = React.useMemo<ColumnDef<Member>[]>(() => {
@@ -168,6 +174,7 @@ export function GroupMembers({
         cell: ({ row }) => <StatusBadge value={row.original.status ?? ""} />,
       });
     }
+    if (!canManage) return cols;
     cols.push({
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
@@ -178,7 +185,7 @@ export function GroupMembers({
           size="sm"
           disabled={remove.isPending}
           aria-label={`Remove ${row.original.label} from the group`}
-          onClick={() => remove.mutate(row.original)}
+          onClick={() => setRemoving(row.original)}
         >
           <X />
           Remove
@@ -186,15 +193,12 @@ export function GroupMembers({
       ),
     });
     return cols;
-  }, [kind, remove]);
+  }, [kind, remove, canManage]);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not load {noun}s</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
+        <ErrorAlert title={`Could not load ${noun}s`} error={error} />
       ) : null}
       <DataTable
         columns={columns}
@@ -204,19 +208,37 @@ export function GroupMembers({
         limit={limit}
         paramKey={param}
         searchPlaceholder={`Search ${noun}s in this group…`}
-        noResultsMessage={
-          isPending
-            ? `Loading ${noun}s…`
-            : q
-              ? `No ${noun}s in this group match your search.`
-              : `No ${noun}s in this group yet.`
+        loading={isPending}
+        noResultsMessage={`No ${noun}s in this group match your search.`}
+        emptyState={
+          q || error ? undefined : (
+            <EmptyState
+              icon={kind === "device" ? Cpu : Radio}
+              title={`No ${noun}s in this group yet`}
+              description={
+                canManage
+                  ? `Add ${noun}s to this group to organize them and filter the ${noun} list by it.`
+                  : `Ask a workspace admin to add ${noun}s to this group.`
+              }
+              action={
+                canManage ? (
+                  <Button onClick={() => setAdding(true)}>
+                    <Plus />
+                    Add {noun}s
+                  </Button>
+                ) : null
+              }
+            />
+          )
         }
         serverFilters={{ search: true }}
         toolbar={
-          <Button onClick={() => setAdding(true)}>
-            <Plus />
-            Add {noun}s
-          </Button>
+          canManage ? (
+            <Button onClick={() => setAdding(true)}>
+              <Plus />
+              Add {noun}s
+            </Button>
+          ) : null
         }
       />
       <GroupAddMembersDialog
@@ -226,6 +248,18 @@ export function GroupMembers({
         workspaceId={workspaceId}
         group={group}
         onAdded={refresh}
+      />
+      <ConfirmDialog
+        open={removing !== null}
+        title={`Remove “${removing?.label ?? ""}” from “${group.name}”?`}
+        description={`The ${noun} itself is kept, along with its connections. It only stops being a member of this group.`}
+        confirmLabel="Remove"
+        pendingLabel="Removing…"
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (removing) remove.mutate(removing);
+        }}
+        onCancel={() => setRemoving(null)}
       />
     </div>
   );

@@ -3,15 +3,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Database } from "lucide-react";
 import { toast } from "sonner";
+import { toastError } from "@/components/ejad/error-alert";
+import { useAccess } from "@/components/ejad/use-access";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { errorText, requestError } from "@/lib/ejad/errors";
 import type { StoreState } from "@/lib/ejad/store-messages";
 
 export const STORE_STATE_QUERY_KEY = "ejad-channel-store";
 
-async function storeRequest(
+export async function storeRequest(
   channelId: string,
   init?: RequestInit,
 ): Promise<StoreState> {
@@ -20,10 +23,7 @@ async function storeRequest(
     { cache: "no-store", ...init },
   );
   const payload = await response.json().catch(() => null);
-  if (!response.ok)
-    throw new Error(
-      payload?.message ?? `The request failed (${response.status}).`,
-    );
+  if (!response.ok) throw requestError(response, payload);
   return payload as StoreState;
 }
 
@@ -33,6 +33,7 @@ async function storeRequest(
  */
 export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
   const queryClient = useQueryClient();
+  const canChange = useAccess().can("manage");
   const queryKey = [STORE_STATE_QUERY_KEY, channelId];
   const { data, error, isPending } = useQuery({
     queryKey,
@@ -53,7 +54,7 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
           : "Messages on this channel are no longer stored.",
       );
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err) => toastError(err),
   });
 
   const checked = mutation.isPending
@@ -65,14 +66,16 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
       <CardContent className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <Database className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <div className="grid gap-1">
+          <div className="grid grid-cols-1 gap-1">
             <Label htmlFor={`store-${channelId}`} className="font-medium">
               Store messages
             </Label>
             <p className="text-sm text-muted-foreground">
               {error
-                ? `Could not load the setting: ${error.message}`
-                : "Save messages published to this channel so they appear below."}
+                ? `Could not load the setting. ${errorText(error)}`
+                : canChange
+                  ? "Save messages published to this channel so they appear below."
+                  : "Whether messages published to this channel are saved. Only workspace Admins and Operators can change this."}
             </p>
           </div>
         </div>
@@ -82,7 +85,7 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
           <Switch
             id={`store-${channelId}`}
             checked={checked}
-            disabled={Boolean(error) || mutation.isPending}
+            disabled={!canChange || Boolean(error) || mutation.isPending}
             onCheckedChange={(value) => mutation.mutate(value)}
           />
         )}

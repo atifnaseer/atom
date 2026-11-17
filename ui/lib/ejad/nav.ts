@@ -20,6 +20,7 @@ import {
   Server,
   ShieldCheck,
   UserCog,
+  UserRound,
   Users,
   Wrench,
 } from "lucide-react";
@@ -33,6 +34,8 @@ export type NavLink = {
   requiresWorkspace?: boolean;
   /** Hidden while a workspace is selected (global-only admin pages). */
   globalOnly?: boolean;
+  /** Shown only to platform admins. */
+  platformAdminOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -64,18 +67,27 @@ export const EJAD_PHASES = {
   deviceGroups: 6,
   dashboards: 7,
   members: 8,
+  users: 8,
 } as const;
 
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Overview",
+
     items: [
       { title: "Home", href: "/dashboard", icon: Home },
       { title: "Workspaces", href: "/workspaces", icon: Layers },
+      {
+        title: "Users",
+        href: "/users",
+        icon: UserRound,
+        platformAdminOnly: true,
+      },
     ],
   },
   {
     title: "Workspace",
+
     items: [
       {
         title: "Devices",
@@ -117,6 +129,7 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Administration",
+
     collapsible: true,
     items: [
       { title: "Tenants", href: "/tenants", icon: Building2, globalOnly: true },
@@ -183,12 +196,15 @@ export function sectionIsActive(pathname: string, section: NavSection) {
   return section.items.some((entry) => entryIsActive(pathname, entry));
 }
 
-/** Sections as shown for the current workspace selection. */
+/** Sections as shown for the current workspace selection and user. */
 export function visibleNavSections(
   workspaceSelected: boolean,
   sections: NavSection[] = NAV_SECTIONS,
+  { platformAdmin = false }: { platformAdmin?: boolean } = {},
 ): NavSection[] {
-  const keep = (link: NavLink) => !(workspaceSelected && link.globalOnly);
+  const keep = (link: NavLink) =>
+    !(workspaceSelected && link.globalOnly) &&
+    !(link.platformAdminOnly && !platformAdmin);
   return sections
     .map((section) => ({
       ...section,

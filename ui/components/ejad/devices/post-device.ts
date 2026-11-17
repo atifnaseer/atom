@@ -1,4 +1,5 @@
 import type { CreateDeviceResult } from "@/lib/ejad/devices";
+import { requestError } from "@/lib/ejad/errors";
 
 export type PostDeviceBody = {
   name: string;
@@ -22,11 +23,7 @@ export async function postDevice(
     CreateDeviceResult & { message: string; code: string }
   >;
   if (!response.ok || !payload.device) {
-    const error = new Error(
-      payload.message ?? `Request failed with status ${response.status}`,
-    ) as Error & { code?: string };
-    error.code = payload.code;
-    throw error;
+    throw requestError(response, payload);
   }
   return {
     device: payload.device,

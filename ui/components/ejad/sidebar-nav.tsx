@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import { useTenant } from "@/components/app-shell/tenant-provider";
+import { useAccess } from "@/components/ejad/use-access";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -40,7 +41,10 @@ export function SidebarNav() {
   const workspaceSelected = selection.id !== GLOBAL_TENANT;
   // In icon-only mode labels and sub-menus are hidden, so show everything flat.
   const iconMode = state === "collapsed" && !isMobile;
-  const sections = visibleNavSections(workspaceSelected);
+  const { platformAdmin } = useAccess();
+  const sections = visibleNavSections(workspaceSelected, undefined, {
+    platformAdmin,
+  });
 
   return sections.map((section, index) => (
     <React.Fragment key={section.title}>
