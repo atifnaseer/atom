@@ -27,6 +27,8 @@ export type Device = {
   createdAt: string;
   updatedAt: string | null;
   managedBy: string | null;
+  /** Object groups the device belongs to (many-to-many). */
+  objectGroupIds?: string[];
 };
 
 export type Credential = {
@@ -46,11 +48,11 @@ export type SharedKey = {
 };
 
 export const DEVICE_FIELDS =
-  "id name externalId tenantId kind status attributes createdAt updatedAt managedBy";
+  "id name externalId tenantId kind status attributes createdAt updatedAt managedBy objectGroupIds";
 
 export const DEVICES_QUERY = `
-  query EjadDevices($tenantId: ID!, $q: String, $status: EntityStatus, $limit: Int, $offset: Int) {
-    entities(kind: device, tenantId: $tenantId, q: $q, status: $status, order: created_at, dir: desc, limit: $limit, offset: $offset) {
+  query EjadDevices($tenantId: ID!, $q: String, $status: EntityStatus, $parentGroupId: ID, $limit: Int, $offset: Int) {
+    entities(kind: device, tenantId: $tenantId, q: $q, status: $status, parentGroupId: $parentGroupId, order: created_at, dir: desc, limit: $limit, offset: $offset) {
       total
       items { ${DEVICE_FIELDS} }
     }
@@ -60,8 +62,8 @@ export const DEVICES_QUERY = `
 // Atom's `q` matches name, alias and attributes (so tags), not the external
 // ID, so the list also looks up an exact external ID (serial/MAC) match.
 export const DEVICE_BY_EXTERNAL_ID_QUERY = `
-  query EjadDeviceByExternalId($tenantId: ID!, $externalId: String!, $status: EntityStatus) {
-    entities(kind: device, tenantId: $tenantId, externalId: $externalId, status: $status, limit: 1) {
+  query EjadDeviceByExternalId($tenantId: ID!, $externalId: String!, $status: EntityStatus, $parentGroupId: ID) {
+    entities(kind: device, tenantId: $tenantId, externalId: $externalId, status: $status, parentGroupId: $parentGroupId, limit: 1) {
       items { ${DEVICE_FIELDS} }
     }
   }

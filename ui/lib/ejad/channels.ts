@@ -25,14 +25,16 @@ export type Channel = {
   createdAt: string;
   updatedAt: string | null;
   managedBy: string | null;
+  /** Object groups the channel belongs to (many-to-many). */
+  objectGroupIds?: string[];
 };
 
 export const CHANNEL_FIELDS =
-  "id kind name tenantId attributes createdAt updatedAt managedBy";
+  "id kind name tenantId attributes createdAt updatedAt managedBy objectGroupIds";
 
 export const CHANNELS_QUERY = `
-  query EjadChannels($tenantId: ID!, $q: String, $limit: Int, $offset: Int) {
-    resources(kind: "${RESOURCE_KIND_CHANNEL}", tenantId: $tenantId, q: $q, order: created_at, dir: desc, limit: $limit, offset: $offset) {
+  query EjadChannels($tenantId: ID!, $q: String, $parentGroupId: ID, $limit: Int, $offset: Int) {
+    resources(kind: "${RESOURCE_KIND_CHANNEL}", tenantId: $tenantId, q: $q, parentGroupId: $parentGroupId, order: created_at, dir: desc, limit: $limit, offset: $offset) {
       total
       items { ${CHANNEL_FIELDS} }
     }

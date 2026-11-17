@@ -14,6 +14,11 @@ import * as React from "react";
 import { ChannelCreateDialog } from "@/components/ejad/channels/channel-create-dialog";
 import { ChannelDeleteDialog } from "@/components/ejad/channels/channel-delete-dialog";
 import { useWorkspaceRoute } from "@/components/ejad/channels/use-workspace-route";
+import { GroupBadges } from "@/components/ejad/groups/group-badges";
+import {
+  useGroupFilter,
+  useObjectGroups,
+} from "@/components/ejad/groups/use-object-groups";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -32,6 +37,7 @@ import {
   channelRoute,
   channelTags,
 } from "@/lib/ejad/channels";
+import { memberGroupIds } from "@/lib/ejad/groups";
 import { graphqlClient } from "@/lib/graphql/client";
 
 const PARAM = "channels";
@@ -51,11 +57,14 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
   const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
   const q = (searchParams.get(`${PARAM}.q`) ?? "").trim();
   const workspaceRoute = useWorkspaceRoute(workspaceId);
+  const groupId = searchParams.get(`${PARAM}.group`) || null;
+  const { tree: groupTree } = useObjectGroups(workspaceId);
+  const groupFilter = useGroupFilter(groupTree);
 
   const [deleting, setDeleting] = React.useState<Channel | null>(null);
 
   const { data, error, isPending } = useQuery({
-    queryKey: [CHANNELS_QUERY_KEY, workspaceId, q, page, limit],
+    queryKey: [CHANNELS_QUERY_KEY, workspaceId, q, groupId, page, limit],
     queryFn: async ({ signal }) => {
       const result = await graphqlClient<{
         resources: { total: number; items: Channel[] };
@@ -64,6 +73,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         variables: {
           tenantId: workspaceId,
           q: q || null,
+          parentGroupId: groupId,
           limit,
           offset: (page - 1) * limit,
         },
@@ -118,6 +128,16 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         },
       },
       {
+        id: "groups",
+        header: "Group",
+        cell: ({ row }) => (
+          <GroupBadges
+            groupIds={memberGroupIds(row.original)}
+            tree={groupTree}
+          />
+        ),
+      },
+      {
         accessorKey: "createdAt",
         header: "Created",
         cell: ({ row }) => (
@@ -166,7 +186,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         },
       },
     ],
-    [router],
+    [router, groupTree],
   );
 
   return (
@@ -196,10 +216,11 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         noResultsMessage={
           isPending
             ? "Loading channels…"
-            : q
+            : q || groupId
               ? "No channels match your search."
               : "No channels yet. Create one to start sending messages."
         }
+        filters={groupFilter}
         serverFilters={{ search: true }}
         toolbar={
           <ChannelCreateDialog

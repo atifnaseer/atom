@@ -29,6 +29,11 @@ import {
   SharedKeyDialog,
   type ShownKey,
 } from "@/components/ejad/devices/shared-key-dialog";
+import { GroupBadges } from "@/components/ejad/groups/group-badges";
+import {
+  useGroupFilter,
+  useObjectGroups,
+} from "@/components/ejad/groups/use-object-groups";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -47,6 +52,7 @@ import {
   deviceTags,
   isDeviceEnabled,
 } from "@/lib/ejad/devices";
+import { memberGroupIds } from "@/lib/ejad/groups";
 import { graphqlClient } from "@/lib/graphql/client";
 
 const PARAM = "devices";
@@ -63,11 +69,12 @@ async function fetchDevices(params: {
   workspaceId: string;
   q: string;
   status: string | null;
+  groupId: string | null;
   page: number;
   limit: number;
   signal: AbortSignal;
 }) {
-  const { workspaceId, q, status, page, limit, signal } = params;
+  const { workspaceId, q, status, groupId, page, limit, signal } = params;
   const list = graphqlClient<{
     entities: { total: number; items: Device[] };
   }>({
@@ -76,6 +83,7 @@ async function fetchDevices(params: {
       tenantId: workspaceId,
       q: q || null,
       status,
+      parentGroupId: groupId,
       limit,
       offset: (page - 1) * limit,
     },
@@ -87,7 +95,12 @@ async function fetchDevices(params: {
     q && page === 1
       ? graphqlClient<{ entities: { items: Device[] } }>({
           query: DEVICE_BY_EXTERNAL_ID_QUERY,
-          variables: { tenantId: workspaceId, externalId: q, status },
+          variables: {
+            tenantId: workspaceId,
+            externalId: q,
+            status,
+            parentGroupId: groupId,
+          },
           signal,
         })
       : null;
@@ -110,15 +123,18 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
   const statusParam = searchParams.get(`${PARAM}.status`);
   const status =
     statusParam && STATUSES.includes(statusParam) ? statusParam : null;
+  const groupId = searchParams.get(`${PARAM}.group`) || null;
+  const { tree: groupTree } = useObjectGroups(workspaceId);
+  const groupFilter = useGroupFilter(groupTree);
 
   const [shownKey, setShownKey] = React.useState<ShownKey | null>(null);
   const [toggling, setToggling] = React.useState<Device | null>(null);
   const [deleting, setDeleting] = React.useState<Device | null>(null);
 
   const { data, error, isPending } = useQuery({
-    queryKey: [DEVICES_QUERY_KEY, workspaceId, q, status, page, limit],
+    queryKey: [DEVICES_QUERY_KEY, workspaceId, q, status, groupId, page, limit],
     queryFn: ({ signal }) =>
-      fetchDevices({ workspaceId, q, status, page, limit, signal }),
+      fetchDevices({ workspaceId, q, status, groupId, page, limit, signal }),
     placeholderData: keepPreviousData,
   });
 
@@ -167,6 +183,16 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => <StatusBadge value={row.original.status} />,
+      },
+      {
+        id: "groups",
+        header: "Group",
+        cell: ({ row }) => (
+          <GroupBadges
+            groupIds={memberGroupIds(row.original)}
+            tree={groupTree}
+          />
+        ),
       },
       {
         accessorKey: "createdAt",
@@ -225,7 +251,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         },
       },
     ],
-    [router],
+    [router, groupTree],
   );
 
   return (
@@ -255,11 +281,12 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         noResultsMessage={
           isPending
             ? "Loading devices…"
-            : q || status
+            : q || status || groupId
               ? "No devices match your search."
               : "No devices yet. Create one or upload a CSV file."
         }
         statusFilter={{ enabled: true, options: STATUSES }}
+        filters={groupFilter}
         serverFilters={{ search: true, status: true }}
         toolbar={
           <div className="flex flex-wrap gap-2">
