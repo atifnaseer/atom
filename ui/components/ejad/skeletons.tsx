@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/components/ejad/i18n-provider";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -63,11 +66,12 @@ export function CardGridSkeleton({ cards = 6 }: { cards?: number }) {
 
 /** Whole-page placeholder for a list page (loading.tsx). */
 export function ListPageSkeleton() {
+  const t = useT();
   return (
     <section
       className="grid grid-cols-1 gap-6"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t("common.loading")}
     >
       <HeaderSkeleton actions />
       <div className="flex gap-2">
@@ -81,11 +85,12 @@ export function ListPageSkeleton() {
 
 /** Whole-page placeholder for a detail page (loading.tsx). */
 export function DetailPageSkeleton() {
+  const t = useT();
   return (
     <section
       className="grid grid-cols-1 gap-6"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t("common.loading")}
     >
       <Skeleton className="h-4 w-32" />
       <HeaderSkeleton actions />
@@ -112,11 +117,12 @@ export function DetailPageSkeleton() {
 
 /** Whole-page placeholder for a card-grid page (loading.tsx). */
 export function CardPageSkeleton() {
+  const t = useT();
   return (
     <section
       className="grid grid-cols-1 gap-6"
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t("common.loading")}
     >
       <HeaderSkeleton actions />
       <CardGridSkeleton />

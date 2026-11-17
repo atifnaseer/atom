@@ -31,6 +31,8 @@ export function JsonEditor({ value, onChange, className }: JsonEditorProps) {
 
   return (
     <_CodeMirror
+      // JSON reads left to right, also on Arabic pages.
+      dir="ltr"
       value={value}
       onChange={onChange}
       theme={resolvedTheme === "dark" ? "dark" : "light"}

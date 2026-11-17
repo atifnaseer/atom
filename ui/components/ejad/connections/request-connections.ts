@@ -3,6 +3,7 @@ import type {
   ConnectionResult,
 } from "@/lib/ejad/connections";
 import { requestError } from "@/lib/ejad/errors";
+import { pageLocale, type Translate, translator } from "@/lib/ejad/i18n/core";
 
 /** Connects (POST) or disconnects (DELETE) through the Ejad route handler. */
 export async function requestConnections(
@@ -32,21 +33,33 @@ export async function requestConnections(
 export function describeResult(
   result: ConnectionResult,
   mode: "connect" | "disconnect",
+  t: Translate = translator(pageLocale()),
 ): { ok: boolean; message: string } {
-  const verb = mode === "connect" ? "added" : "removed";
   const parts: string[] = [];
   if (result.changed > 0)
     parts.push(
-      `${result.changed} connection${result.changed === 1 ? "" : "s"} ${verb}`,
+      t(mode === "connect" ? "connections.added" : "connections.removed", {
+        count: result.changed,
+      }),
     );
   if (result.skipped > 0)
     parts.push(
-      `${result.skipped} ${mode === "connect" ? "already existed" : "were not connected"}`,
+      t(
+        mode === "connect" ? "connections.existed" : "connections.notConnected",
+        {
+          count: result.skipped,
+        },
+      ),
     );
   if (result.failed.length > 0)
-    parts.push(`${result.failed.length} failed: ${result.failed[0].message}`);
+    parts.push(
+      t("connections.failed", {
+        count: result.failed.length,
+        error: result.failed[0].message,
+      }),
+    );
   return {
     ok: result.failed.length === 0,
-    message: parts.join(", ") || "Nothing to change",
+    message: parts.join(t("common.comma")) || t("connections.nothing"),
   };
 }

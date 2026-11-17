@@ -20,6 +20,7 @@ import {
   useGroupActions,
 } from "@/components/ejad/groups/group-actions";
 import { useObjectGroups } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { IfAllowed } from "@/components/ejad/if-allowed";
 import { PageHeader } from "@/components/ejad/page-header";
 import { useAccess } from "@/components/ejad/use-access";
@@ -35,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function GroupsView({ workspaceId }: { workspaceId: string }) {
+  const { t } = useI18n();
   const { tree, groups, error, isPending, refetch } =
     useObjectGroups(workspaceId);
   const canManage = useAccess().can("manage");
@@ -82,13 +84,13 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={FolderTree}
-        title="Groups"
-        description="Organize devices and channels into a tree of groups, for example by site, building or floor."
+        title={t("page.groups.title")}
+        description={t("page.groups.description")}
         actions={
           <IfAllowed ability="manage">
             <Button onClick={() => actions.create(null)}>
               <Plus />
-              Create group
+              {t("groups.create")}
             </Button>
           </IfAllowed>
         }
@@ -96,7 +98,7 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
 
       {error ? (
         <ErrorAlert
-          title="Could not load groups"
+          title={t("groups.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -104,11 +106,11 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-8"
-            placeholder="Search groups…"
-            aria-label="Search groups"
+            className="ps-8"
+            placeholder={t("groups.search")}
+            aria-label={t("groups.search")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -126,7 +128,7 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
               }
             >
               {allCollapsed ? <ChevronsUpDown /> : <ChevronsDownUp />}
-              {allCollapsed ? "Expand all" : "Collapse all"}
+              {allCollapsed ? t("groups.expandAll") : t("groups.collapseAll")}
             </Button>
           ) : null}
         </div>
@@ -137,35 +139,35 @@ export function GroupsView({ workspaceId }: { workspaceId: string }) {
           {isPending ? (
             <div className="grid gap-2 p-3">
               <Skeleton className="h-8 w-64" />
-              <Skeleton className="ml-6 h-8 w-56" />
+              <Skeleton className="ms-6 h-8 w-56" />
               <Skeleton className="h-8 w-60" />
             </div>
           ) : rows.length === 0 && visible ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
-              No groups match your search.
+              {t("groups.noMatches")}
             </p>
           ) : rows.length === 0 ? (
             error ? null : (
               <EmptyState
                 icon={FolderTree}
-                title="No groups yet"
+                title={t("groups.emptyTitle")}
                 description={
                   canManage
-                    ? "Groups let you organize devices and channels, and filter lists by site or area. Create a top-level group to start."
-                    : "Groups let you organize devices and channels. Ask a workspace admin to create one."
+                    ? t("groups.emptyHint")
+                    : t("groups.emptyHintReadOnly")
                 }
                 action={
                   canManage ? (
                     <Button onClick={() => actions.create(null)}>
                       <Plus />
-                      Create group
+                      {t("groups.create")}
                     </Button>
                   ) : null
                 }
               />
             )
           ) : (
-            <ul aria-label="Groups" className="grid">
+            <ul aria-label={t("nav.groups")} className="grid">
               {rows.map((node) => (
                 <GroupRow
                   key={node.group.id}
@@ -196,26 +198,33 @@ function GroupRow({
   onToggle: () => void;
   actions: ReturnType<typeof useGroupActions>;
 }) {
+  const { t } = useI18n();
   const { group, depth, children } = node;
   const hasChildren = children.length > 0;
   const Icon = hasChildren && expanded ? FolderOpen : Folder;
   return (
     <li
-      className="flex min-w-0 items-center gap-1 rounded-md py-1 pr-1 hover:bg-muted/60"
-      style={{ paddingLeft: `${depth * 1.5 + 0.25}rem` }}
+      className="flex min-w-0 items-center gap-1 rounded-md py-1 pe-1 hover:bg-muted/60"
+      style={{ paddingInlineStart: `${depth * 1.5 + 0.25}rem` }}
     >
       <Button
         variant="ghost"
         size="icon"
         className={cn("size-7 shrink-0", !hasChildren && "invisible")}
         aria-label={
-          expanded ? `Collapse ${group.name}` : `Expand ${group.name}`
+          expanded
+            ? t("groups.collapse", { name: group.name })
+            : t("groups.expand", { name: group.name })
         }
         aria-expanded={hasChildren ? expanded : undefined}
         onClick={onToggle}
         tabIndex={hasChildren ? 0 : -1}
       >
-        {expanded ? <ChevronDown /> : <ChevronRight />}
+        {expanded ? (
+          <ChevronDown />
+        ) : (
+          <ChevronRight className="rtl:rotate-180" />
+        )}
       </Button>
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3 px-1">
@@ -233,7 +242,7 @@ function GroupRow({
       </div>
       {hasChildren ? (
         <span className="shrink-0 px-2 text-xs text-muted-foreground">
-          {children.length} subgroup{children.length === 1 ? "" : "s"}
+          {t("groups.subgroups", { count: children.length })}
         </span>
       ) : null}
       <IfAllowed ability="manage">

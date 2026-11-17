@@ -46,7 +46,7 @@ export function CommandMenu() {
       >
         <Search className="size-4" />
         <span>Search workflows</span>
-        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[0.65rem] sm:inline">
+        <kbd className="ms-auto hidden rounded border bg-muted px-1.5 font-mono text-[0.65rem] sm:inline">
           /
         </kbd>
       </Button>

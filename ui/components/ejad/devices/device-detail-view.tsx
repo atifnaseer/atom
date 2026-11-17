@@ -1,12 +1,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { ArrowLeft, CircleOff, CirclePlay, Cpu, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import { StatusBadge } from "@/components/crud/status-badge";
 import { ConnectionsTab } from "@/components/ejad/connections/connections-tab";
 import { DeviceConnectDialog } from "@/components/ejad/connections/device-connect-dialog";
 import { useDeviceConnections } from "@/components/ejad/connections/use-connections";
@@ -18,8 +16,10 @@ import {
 import { DeviceCredentials } from "@/components/ejad/devices/device-credentials";
 import { DEVICES_QUERY_KEY } from "@/components/ejad/devices/devices-view";
 import { LoadProblem } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
 import { HeaderSkeleton } from "@/components/ejad/skeletons";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import { useAccess } from "@/components/ejad/use-access";
 import { EntityAuditLog } from "@/components/entities/entity-audit-log";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export function DeviceDetailView({
   deviceId: string;
   workspaceId: string;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -90,8 +91,8 @@ export function DeviceDetailView({
   const backLink = (
     <Button asChild variant="ghost" size="sm" className="w-fit px-2">
       <Link href="/devices">
-        <ArrowLeft />
-        Devices
+        <ArrowLeft className="rtl:rotate-180" />
+        {t("nav.devices")}
       </Link>
     </Button>
   );
@@ -113,10 +114,10 @@ export function DeviceDetailView({
       <div className="grid grid-cols-1 gap-6">
         {backLink}
         <LoadProblem
-          what="device"
+          kind="device"
           error={error}
           notFound={Boolean(notHere)}
-          back={{ href: "/devices", label: "Back to devices" }}
+          back={{ href: "/devices", label: t("devices.back") }}
           onRetry={() => refetch()}
         />
       </div>
@@ -147,7 +148,7 @@ export function DeviceDetailView({
                 onClick={() => setToggling(true)}
               >
                 {enabled ? <CircleOff /> : <CirclePlay />}
-                {enabled ? "Disable" : "Enable"}
+                {enabled ? t("common.disable") : t("common.enable")}
               </Button>
               <Button
                 variant="destructive"
@@ -155,7 +156,7 @@ export function DeviceDetailView({
                 onClick={() => setDeleting(true)}
               >
                 <Trash2 />
-                Delete
+                {t("common.delete")}
               </Button>
             </>
           ) : null
@@ -171,12 +172,14 @@ export function DeviceDetailView({
         onValueChange={setTab}
       >
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="overview">{t("tabs.overview")}</TabsTrigger>
           {canManage ? (
-            <TabsTrigger value="credentials">Credentials</TabsTrigger>
+            <TabsTrigger value="credentials">
+              {t("tabs.credentials")}
+            </TabsTrigger>
           ) : null}
-          <TabsTrigger value="connections">Connections</TabsTrigger>
-          <TabsTrigger value="audit">Audit</TabsTrigger>
+          <TabsTrigger value="connections">{t("tabs.connections")}</TabsTrigger>
+          <TabsTrigger value="audit">{t("tabs.audit")}</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="mt-4">
           <Overview device={device} />
@@ -224,29 +227,30 @@ export function DeviceDetailView({
 }
 
 function Overview({ device }: { device: Device }) {
+  const { t, format } = useI18n();
   const tags = deviceTags(device);
   const metadata = deviceMetadata(device);
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Details</CardTitle>
+          <CardTitle className="text-base">{t("detail.details")}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-3 text-sm">
-            <dt className="text-muted-foreground">Name</dt>
+            <dt className="text-muted-foreground">{t("common.name")}</dt>
             <dd className="font-medium">{device.name}</dd>
-            <dt className="text-muted-foreground">Device ID</dt>
+            <dt className="text-muted-foreground">{t("devices.id")}</dt>
             <dd className="flex min-w-0 items-center gap-1">
               <code className="truncate font-mono text-xs">{device.id}</code>
               <CopyButton
                 value={device.id}
                 size="icon"
                 variant="ghost"
-                label="Copy device ID"
+                label={t("devices.copyId")}
               />
             </dd>
-            <dt className="text-muted-foreground">External ID</dt>
+            <dt className="text-muted-foreground">{t("devices.externalId")}</dt>
             <dd>
               {device.externalId ? (
                 <code className="font-mono text-xs">{device.externalId}</code>
@@ -254,11 +258,11 @@ function Overview({ device }: { device: Device }) {
                 <span className="text-muted-foreground">—</span>
               )}
             </dd>
-            <dt className="text-muted-foreground">Status</dt>
+            <dt className="text-muted-foreground">{t("common.status")}</dt>
             <dd>
               <StatusBadge value={device.status} />
             </dd>
-            <dt className="text-muted-foreground">Tags</dt>
+            <dt className="text-muted-foreground">{t("workspaces.tags")}</dt>
             <dd>
               {tags.length ? (
                 <DisplayTags tags={tags} className="[&>*]:mx-0" />
@@ -266,12 +270,12 @@ function Overview({ device }: { device: Device }) {
                 <span className="text-muted-foreground">—</span>
               )}
             </dd>
-            <dt className="text-muted-foreground">Created</dt>
-            <dd>{format(new Date(device.createdAt), "d MMM yyyy, HH:mm")}</dd>
-            <dt className="text-muted-foreground">Updated</dt>
+            <dt className="text-muted-foreground">{t("common.created")}</dt>
+            <dd>{format.date(device.createdAt, "dateTime")}</dd>
+            <dt className="text-muted-foreground">{t("common.updated")}</dt>
             <dd>
               {device.updatedAt
-                ? format(new Date(device.updatedAt), "d MMM yyyy, HH:mm")
+                ? format.date(device.updatedAt, "dateTime")
                 : "—"}
             </dd>
           </dl>
@@ -279,13 +283,17 @@ function Overview({ device }: { device: Device }) {
       </Card>
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle className="text-base">Metadata</CardTitle>
+          <CardTitle className="text-base">
+            {t("workspaces.metadata")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="min-w-0">
           {Object.keys(metadata).length ? (
             <JsonEditor value={JSON.stringify(metadata, null, 2)} />
           ) : (
-            <p className="text-sm text-muted-foreground">No metadata.</p>
+            <p className="text-sm text-muted-foreground">
+              {t("detail.noMetadata")}
+            </p>
           )}
         </CardContent>
       </Card>

@@ -1,10 +1,20 @@
 "use client";
 
-import { Laptop, LogOut, Moon, Sun, User } from "lucide-react";
+import {
+  Check,
+  Languages,
+  Laptop,
+  LogOut,
+  Moon,
+  Sun,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
+import { useI18n } from "@/components/ejad/i18n-provider";
+import { useSwitchLocale } from "@/components/ejad/language-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -43,6 +53,9 @@ export function UserNav({
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
   const router = useRouter();
+  const { t, locale, localize } = useI18n();
+  const { switchTo } = useSwitchLocale();
+  const LOCALES = ["en", "ar"] as const;
 
   const abbr = initials(entityName);
 
@@ -60,11 +73,11 @@ export function UserNav({
   );
 
   const nameBlock = (
-    <div className="grid flex-1 text-left text-sm leading-tight">
+    <div className="grid flex-1 text-start text-sm leading-tight">
       <span className="truncate font-semibold">{entityName}</span>
       {entityKind ? (
         <span className="truncate text-xs text-muted-foreground capitalize">
-          {entityKind}
+          {localize(entityKind)}
         </span>
       ) : null}
     </div>
@@ -86,12 +99,12 @@ export function UserNav({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : locale === "ar" ? "left" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+              <div className="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                 {avatarBlock}
                 {nameBlock}
               </div>
@@ -101,35 +114,53 @@ export function UserNav({
               <DropdownMenuItem asChild>
                 <Link href="/profile">
                   <User />
-                  Profile settings
+                  {t("shell.profile")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Sun className="dark:hidden" />
                   <Moon className="hidden dark:block" />
-                  Theme
+                  {t("shell.theme")}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onClick={() => setTheme("light")}>
                     <Sun />
-                    Light
+                    {t("shell.themeLight")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTheme("dark")}>
                     <Moon />
-                    Dark
+                    {t("shell.themeDark")}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setTheme("system")}>
                     <Laptop />
-                    System
+                    {t("shell.themeSystem")}
                   </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Languages />
+                  {t("language.label")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {LOCALES.map((option) => (
+                    <DropdownMenuItem
+                      key={option}
+                      lang={option}
+                      onClick={() => switchTo(option)}
+                    >
+                      <span className="flex-1">{t(`language.${option}`)}</span>
+                      {option === locale ? <Check /> : null}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>
               <LogOut />
-              Log out
+              {t("shell.logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

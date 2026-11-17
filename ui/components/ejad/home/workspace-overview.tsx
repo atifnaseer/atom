@@ -1,7 +1,6 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { formatDistanceToNowStrict } from "date-fns";
 import {
   Cpu,
   LayoutDashboard,
@@ -13,6 +12,7 @@ import Link from "next/link";
 import type * as React from "react";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { ErrorAlert } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,6 +69,7 @@ function Stat({
 
 /** Home: counts and the latest readings of the selected workspace. */
 export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
+  const { t, format } = useI18n();
   const { data, error, isPending } = useQuery({
     queryKey: ["ejad-overview", workspaceId],
     queryFn: ({ signal }) => fetchOverview(signal),
@@ -77,10 +78,7 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
     refetchIntervalInBackground: false,
   });
 
-  if (error)
-    return (
-      <ErrorAlert title="Could not load the workspace overview" error={error} />
-    );
+  if (error) return <ErrorAlert title={t("home.loadFailed")} error={error} />;
 
   const withValues = data?.latest.filter((c) => c.latest.length > 0) ?? [];
 
@@ -89,15 +87,15 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
       <Card>
         <EmptyState
           icon={Rocket}
-          title="This workspace is empty"
-          description="Start by adding a device, then create a channel and connect the device to it. Its messages show up here once the channel stores them."
+          title={t("home.emptyTitle")}
+          description={t("home.emptyHint")}
           action={
             <>
               <Button asChild>
-                <Link href="/devices">Add a device</Link>
+                <Link href="/devices">{t("home.addDevice")}</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/channels">Create a channel</Link>
+                <Link href="/channels">{t("home.createChannel")}</Link>
               </Button>
             </>
           }
@@ -106,38 +104,38 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
     );
 
   return (
-    <section aria-label="Workspace overview" className="grid grid-cols-1 gap-3">
+    <section aria-label={t("home.overview")} className="grid grid-cols-1 gap-3">
       <div className="grid gap-3 sm:grid-cols-3">
         {isPending || !data ? (
           [0, 1, 2].map((key) => <Skeleton key={key} className="h-28" />)
         ) : (
           <>
             <Stat
-              label="Devices"
-              value={data.devices}
+              label={t("nav.devices")}
+              value={format.number(data.devices)}
               icon={Cpu}
               href="/devices"
             />
             <Stat
-              label="Channels"
-              value={data.channels}
+              label={t("nav.channels")}
+              value={format.number(data.channels)}
               icon={Radio}
               href="/channels"
-              note={`${data.storedChannels} storing messages`}
+              note={t("home.storing", { count: data.storedChannels })}
             />
             <Stat
-              label="Messages in the last hour"
+              label={t("home.lastHour")}
               value={
                 data.messagesLastHour === null
                   ? "—"
-                  : data.messagesLastHour.toLocaleString()
+                  : format.number(data.messagesLastHour)
               }
               icon={MessageSquare}
               href="/messages"
               note={
                 data.storedChannels === 0
-                  ? "No channel stores messages yet"
-                  : "Stored messages, all channels"
+                  ? t("home.noStoring")
+                  : t("home.allChannels")
               }
             />
           </>
@@ -146,13 +144,13 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
 
       <Card className="py-4">
         <CardHeader className="flex flex-wrap items-center justify-between gap-2 px-4">
-          <CardTitle className="text-base">Latest values</CardTitle>
+          <CardTitle className="text-base">{t("home.latest")}</CardTitle>
           <Link
             href="/dashboards"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <LayoutDashboard className="size-4" />
-            Dashboards
+            {t("nav.dashboards")}
           </Link>
         </CardHeader>
         <CardContent className="px-4">
@@ -160,10 +158,9 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
             <Skeleton className="h-16" />
           ) : withValues.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No stored messages yet. Turn on “Store messages” on a channel and
-              publish to it.{" "}
+              {t("home.noStored")}{" "}
               <Link href="/channels" className="font-medium underline">
-                Open channels
+                {t("home.openChannels")}
               </Link>
             </p>
           ) : (
@@ -185,22 +182,18 @@ export function WorkspaceOverview({ workspaceId }: { workspaceId: string }) {
                           <dt className="truncate text-muted-foreground">
                             {message.name || "—"}
                           </dt>
-                          <dd className="text-right font-medium tabular-nums">
+                          <dd className="text-end font-medium tabular-nums">
                             {typeof message.value === "number"
                               ? formatReading(message.value)
                               : messageValue(message)}
                             {message.unit ? (
-                              <span className="ml-1 font-normal text-muted-foreground">
+                              <span className="ms-1 font-normal text-muted-foreground">
                                 {message.unit}
                               </span>
                             ) : null}
                           </dd>
-                          <dd className="text-right text-xs text-muted-foreground">
-                            {date
-                              ? formatDistanceToNowStrict(date, {
-                                  addSuffix: true,
-                                })
-                              : ""}
+                          <dd className="text-end text-xs text-muted-foreground">
+                            {date ? format.relative(date) : ""}
                           </dd>
                         </div>
                       );

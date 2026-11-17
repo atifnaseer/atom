@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,10 +20,6 @@ import {
   type ObjectGroup,
 } from "@/lib/ejad/groups";
 import { graphqlClient } from "@/lib/graphql/client";
-
-function plural(count: number, word: string) {
-  return `${count} ${word}${count === 1 ? "" : "s"}`;
-}
 
 /**
  * Deletes a group. A group with subgroups cannot be deleted: Atom would
@@ -42,6 +39,7 @@ export function GroupDeleteDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: (group: ObjectGroup) => void;
 }) {
+  const { t } = useI18n();
   const counts = useQuery({
     queryKey: ["ejad-group-member-counts", group?.id],
     enabled: group !== null && childCount === 0,
@@ -65,7 +63,7 @@ export function GroupDeleteDialog({
       return target;
     },
     onSuccess: (target) => {
-      toast.success(`Group “${target.name}” deleted`);
+      toast.success(t("groups.deleted", { name: target.name }));
       onDeleted(target);
     },
     onError: (error) => toastError(error),
@@ -85,20 +83,26 @@ export function GroupDeleteDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {blocked ? "Cannot delete" : "Delete"} group “{group?.name}”
-            {blocked ? "" : "?"}
+            {t(blocked ? "groups.cannotDeleteTitle" : "groups.deleteTitle", {
+              name: group?.name ?? "",
+            })}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {blocked
-              ? `It contains ${plural(childCount, "subgroup")}. Move or delete them first.`
+              ? t("groups.hasChildren", {
+                  subgroups: t("groups.subgroups", { count: childCount }),
+                })
               : devices || channels
-                ? `Its ${plural(devices, "device")} and ${plural(channels, "channel")} leave the group; they are not deleted.`
-                : "The group is empty. Devices and channels are never deleted with a group."}
+                ? t("groups.membersLeave", {
+                    devices: t("count.devices", { count: devices }),
+                    channels: t("count.channels", { count: channels }),
+                  })
+                : t("groups.emptyDelete")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={remove.isPending}>
-            {blocked ? "Close" : "Cancel"}
+            {blocked ? t("common.close") : t("common.cancel")}
           </AlertDialogCancel>
           {blocked ? null : (
             <AlertDialogAction
@@ -109,7 +113,7 @@ export function GroupDeleteDialog({
                 if (group) remove.mutate(group);
               }}
             >
-              {remove.isPending ? "Deleting…" : "Delete group"}
+              {remove.isPending ? t("common.deleting") : t("groups.delete")}
             </AlertDialogAction>
           )}
         </AlertDialogFooter>

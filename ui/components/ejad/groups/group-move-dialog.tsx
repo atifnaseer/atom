@@ -5,6 +5,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
 import { indentLabel } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +46,7 @@ export function GroupMoveDialog({
   onOpenChange: (open: boolean) => void;
   onMoved: () => void;
 }) {
+  const { t } = useI18n();
   const [parent, setParent] = React.useState(TOP_LEVEL);
 
   React.useEffect(() => {
@@ -70,11 +72,14 @@ export function GroupMoveDialog({
       );
     },
     onSuccess: () => {
-      const target =
+      toast.success(
         parent === TOP_LEVEL
-          ? "the top level"
-          : `“${tree.byId.get(parent)?.name}”`;
-      toast.success(`Moved “${group?.name}” to ${target}`);
+          ? t("groups.movedTop", { name: group?.name ?? "" })
+          : t("groups.movedInto", {
+              name: group?.name ?? "",
+              parent: tree.byId.get(parent)?.name ?? "",
+            }),
+      );
       onMoved();
       onOpenChange(false);
     },
@@ -90,10 +95,9 @@ export function GroupMoveDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Move group</DialogTitle>
+          <DialogTitle>{t("groups.moveTitle")}</DialogTitle>
           <DialogDescription>
-            Choose the new parent of “{group?.name}”. Its subgroups, devices and
-            channels move with it.
+            {t("groups.moveHint", { name: group?.name ?? "" })}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -104,7 +108,7 @@ export function GroupMoveDialog({
           }}
         >
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="group-move-parent">Parent</Label>
+            <Label htmlFor="group-move-parent">{t("groups.parent")}</Label>
             <Select
               value={parent}
               onValueChange={setParent}
@@ -114,7 +118,9 @@ export function GroupMoveDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={TOP_LEVEL}>Top level (no parent)</SelectItem>
+                <SelectItem value={TOP_LEVEL}>
+                  {t("groups.topLevel")}
+                </SelectItem>
                 {options.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {indentLabel(option.label, option.depth)}
@@ -130,13 +136,13 @@ export function GroupMoveDialog({
               disabled={move.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={move.isPending || parent === current}
             >
-              {move.isPending ? "Moving…" : "Move"}
+              {move.isPending ? t("groups.moving") : t("groups.move")}
             </Button>
           </DialogFooter>
         </form>

@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
+import { useT } from "@/components/ejad/i18n-provider";
 import {
   buildGroupTree,
   fetchAllObjectGroups,
@@ -54,12 +55,13 @@ export function indentLabel(label: string, depth: number) {
 
 /** DataTable "Group" select filter for the devices and channels tables. */
 export function useGroupFilter(tree: GroupTree) {
+  const t = useT();
   return React.useMemo(
     () => [
       {
         key: "group",
-        label: "Group",
-        allLabel: "All groups",
+        label: t("devices.group"),
+        allLabel: t("groups.allGroups"),
         type: "select" as const,
         options: groupOptions(tree).map((option) => ({
           value: option.value,
@@ -67,6 +69,6 @@ export function useGroupFilter(tree: GroupTree) {
         })),
       },
     ],
-    [tree],
+    [tree, t],
   );
 }

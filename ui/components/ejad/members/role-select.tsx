@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/components/ejad/i18n-provider";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ export function RoleSelect({
   className?: string;
   label?: string;
 }) {
+  const t = useT();
   return (
     <Select
       value={value ?? undefined}
@@ -32,12 +34,12 @@ export function RoleSelect({
       disabled={disabled}
     >
       <SelectTrigger id={id} className={className} aria-label={label}>
-        <SelectValue placeholder="No role" />
+        <SelectValue placeholder={t("role.none")} />
       </SelectTrigger>
       <SelectContent>
         {WORKSPACE_ROLES.map((role) => (
           <SelectItem key={role.key} value={role.key}>
-            {role.label}
+            {t(`role.${role.key}`)}
           </SelectItem>
         ))}
       </SelectContent>

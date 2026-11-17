@@ -17,6 +17,7 @@ import {
 } from "@/components/ejad/groups/group-form-dialog";
 import { GroupMoveDialog } from "@/components/ejad/groups/group-move-dialog";
 import { useRefreshGroups } from "@/components/ejad/groups/use-object-groups";
+import { useT } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -113,6 +114,7 @@ export function GroupActionsMenu({
   actions: GroupActions;
   showOpen?: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const managed = Boolean(group.managedBy);
   return (
@@ -122,7 +124,7 @@ export function GroupActionsMenu({
           variant="ghost"
           size="icon"
           className="size-8"
-          aria-label={`Actions for ${group.name}`}
+          aria-label={t("common.actionsFor", { name: group.name })}
         >
           <MoreVertical />
         </Button>
@@ -133,26 +135,26 @@ export function GroupActionsMenu({
             onSelect={() => router.push(`/device-groups/${group.id}`)}
           >
             <ExternalLink />
-            Open
+            {t("common.open")}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem onSelect={() => actions.create(group)}>
           <FolderPlus />
-          Add subgroup
+          {t("groups.addSubgroup")}
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={managed}
           onSelect={() => actions.edit(group)}
         >
           <Pencil />
-          Rename
+          {t("common.rename")}
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={managed}
           onSelect={() => actions.move(group)}
         >
           <FolderInput />
-          Move
+          {t("groups.move")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -161,7 +163,7 @@ export function GroupActionsMenu({
           onSelect={() => actions.remove(group)}
         >
           <Trash2 />
-          Delete
+          {t("common.delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

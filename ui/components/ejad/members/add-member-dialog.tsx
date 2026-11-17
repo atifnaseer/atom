@@ -5,6 +5,7 @@ import { UserPlus } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useT } from "@/components/ejad/i18n-provider";
 import { RoleSelect } from "@/components/ejad/members/role-select";
 import { requestJson } from "@/components/ejad/request-json";
 import { AsyncCombobox, type ComboPage } from "@/components/ui/async-combobox";
@@ -44,6 +45,7 @@ async function searchUsers(
 
 /** Adds an existing user to the workspace with a role. */
 export function AddMemberDialog({ onAdded }: { onAdded: () => void }) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const [entityId, setEntityId] = React.useState("");
   const [role, setRole] = React.useState<WorkspaceRoleKey>("viewer");
@@ -55,7 +57,7 @@ export function AddMemberDialog({ onAdded }: { onAdded: () => void }) {
         body: { entityId, role },
       }),
     onSuccess: () => {
-      toast.success("Member added");
+      toast.success(t("members.added"));
       setOpen(false);
       onAdded();
     },
@@ -77,16 +79,13 @@ export function AddMemberDialog({ onAdded }: { onAdded: () => void }) {
       <DialogTrigger asChild>
         <Button>
           <UserPlus />
-          Add member
+          {t("members.add")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add member</DialogTitle>
-          <DialogDescription>
-            Give an existing user access to this workspace. Platform admins
-            create users on the Users page.
-          </DialogDescription>
+          <DialogTitle>{t("members.add")}</DialogTitle>
+          <DialogDescription>{t("members.addHint")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid grid-cols-1 gap-4"
@@ -96,20 +95,20 @@ export function AddMemberDialog({ onAdded }: { onAdded: () => void }) {
           }}
         >
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="member-user">User</Label>
+            <Label htmlFor="member-user">{t("members.user")}</Label>
             <AsyncCombobox
               id="member-user"
               value={entityId}
               onChange={setEntityId}
               fetchPage={({ search, signal }) => searchUsers(search, signal)}
               queryKey={["ejad-member-candidates"]}
-              placeholder="Pick a user"
-              searchPlaceholder="Type 3+ letters of a name or email…"
-              emptyText="Type at least 3 letters to find users."
+              placeholder={t("members.pickUser")}
+              searchPlaceholder={t("members.searchUsers")}
+              emptyText={t("members.searchHint")}
             />
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="member-role">Role</Label>
+            <Label htmlFor="member-role">{t("members.role")}</Label>
             <RoleSelect
               id="member-role"
               value={role}
@@ -124,10 +123,10 @@ export function AddMemberDialog({ onAdded }: { onAdded: () => void }) {
               disabled={add.isPending}
               onClick={() => setOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={!entityId || add.isPending}>
-              {add.isPending ? "Adding…" : "Add member"}
+              {add.isPending ? t("gm.adding") : t("members.add")}
             </Button>
           </DialogFooter>
         </form>

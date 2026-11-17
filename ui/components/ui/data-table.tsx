@@ -58,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useI18n } from "@/components/ejad/i18n-provider";
 
 const PAGE_SIZES = [10, 20, 50] as const;
 const LOADING_ROWS = [0, 1, 2, 3, 4];
@@ -116,8 +117,8 @@ export function DataTable<TData, TValue>({
   page,
   limit,
   paramKey,
-    searchPlaceholder = "Search…",
-  noResultsMessage = "No results.",
+  searchPlaceholder,
+  noResultsMessage,
   loading = false,
   emptyState,
   statusFilter,
@@ -126,6 +127,7 @@ export function DataTable<TData, TValue>({
   sortOptions = [],
   toolbar,
 }: DataTableProps<TData, TValue>) {
+  const { t, localize } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -359,19 +361,19 @@ export function DataTable<TData, TValue>({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-                            aria-label={searchPlaceholder}
-              className="h-9 w-full pl-9 sm:w-72"
+              aria-label={searchPlaceholder ?? t("table.search")}
+              className="h-9 w-full ps-9 sm:w-72"
               onChange={(e) => handleSearchChange(e.target.value)}
-                            placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t("table.search")}
               value={searchValue}
             />
           </div>
           {statusFilter?.enabled || lifecycleFilter ? (
             <LifecycleStatusFilter
               hasLifecycle={Boolean(lifecycleFilter)}
-              label={statusFilter?.label ?? "Status"}
+              label={statusFilter?.label ?? t("common.status")}
               onChange={
                 lifecycleFilter
                   ? handleLifecycleStatusChange
@@ -392,7 +394,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <div className="relative" key={filter.key}>
                 <Input
-                  aria-label={`Filter by ${filter.label}`}
+                  aria-label={t("table.filterBy", { label: filter.label })}
                   className="h-9 w-full sm:w-48"
                   onChange={(event) =>
                     handleFilterChange(filter, event.target.value)
@@ -487,7 +489,7 @@ export function DataTable<TData, TValue>({
                   className="h-24 whitespace-normal text-center text-sm text-muted-foreground"
                   colSpan={colCount}
                 >
-                  {emptyState ?? noResultsMessage}
+                  {emptyState ?? noResultsMessage ?? t("table.noResults")}
                 </TableCell>
               </TableRow>
             )}
@@ -498,11 +500,13 @@ export function DataTable<TData, TValue>({
       {/* Pagination footer */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm text-muted-foreground">
-                    {rowCount} row{rowCount !== 1 ? "s" : ""}
+          {t("table.rows", { count: rowCount })}
         </span>
         <div className="flex items-center gap-4">
           <div className="hidden items-center gap-2 sm:flex">
-            <span className="text-sm text-muted-foreground">Rows per page</span>
+            <span className="text-sm text-muted-foreground">
+              {t("table.rowsPerPage")}
+            </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
@@ -529,37 +533,40 @@ export function DataTable<TData, TValue>({
           </div>
 
           <span className="w-28 text-center text-sm text-muted-foreground">
-                        Page {pageCount > 0 ? currentPage : 0} of {pageCount}
+            {t("common.pageOf", {
+              page: pageCount > 0 ? currentPage : 0,
+              pages: pageCount,
+            })}
           </span>
 
           <div className="flex items-center gap-1">
             <PageLink
-              aria-label="First page"
+              aria-label={t("table.firstPage")}
               disabled={currentPage <= 1}
               href={buildUrl({ [`${paramKey}.page`]: "1" })}
             >
-              <ChevronsLeft className="size-4" />
+              <ChevronsLeft className="size-4 rtl:rotate-180" />
             </PageLink>
             <PageLink
-              aria-label="Previous page"
+              aria-label={t("table.previousPage")}
               disabled={currentPage <= 1}
               href={buildUrl({ [`${paramKey}.page`]: String(currentPage - 1) })}
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="size-4 rtl:rotate-180" />
             </PageLink>
             <PageLink
-              aria-label="Next page"
+              aria-label={t("table.nextPage")}
               disabled={currentPage >= pageCount}
               href={buildUrl({ [`${paramKey}.page`]: String(currentPage + 1) })}
             >
-              <ChevronRight className="size-4" />
+              <ChevronRight className="size-4 rtl:rotate-180" />
             </PageLink>
             <PageLink
-              aria-label="Last page"
+              aria-label={t("table.lastPage")}
               disabled={currentPage >= pageCount}
               href={buildUrl({ [`${paramKey}.page`]: String(pageCount) })}
             >
-              <ChevronsRight className="size-4" />
+              <ChevronsRight className="size-4 rtl:rotate-180" />
             </PageLink>
           </div>
         </div>
@@ -597,18 +604,19 @@ function SortControl({
   options: Array<{ label: string; value: string }>;
   order: string;
 }) {
+  const { t, localize } = useI18n();
   const orderLabelId = React.useId();
   const dirLabelId = React.useId();
 
   return (
     <div className="flex min-w-0 gap-2">
-      <FilterField label="Sort" labelId={orderLabelId}>
+      <FilterField label={t("table.sort")} labelId={orderLabelId}>
         <Select onValueChange={onOrderChange} value={order}>
           <SelectTrigger
             aria-labelledby={orderLabelId}
             className="h-9 w-full sm:w-40"
           >
-            <SelectValue placeholder="Sort" />
+            <SelectValue placeholder={t("table.sort")} />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
@@ -621,18 +629,18 @@ function SortControl({
           </SelectContent>
         </Select>
       </FilterField>
-      <FilterField label="Direction" labelId={dirLabelId}>
+      <FilterField label={t("table.direction")} labelId={dirLabelId}>
         <Select onValueChange={onDirChange} value={dir}>
           <SelectTrigger
             aria-labelledby={dirLabelId}
             className="h-9 w-full sm:w-28"
           >
-            <SelectValue placeholder="Direction" />
+            <SelectValue placeholder={t("table.direction")} />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="asc">Asc</SelectItem>
-              <SelectItem value="desc">Desc</SelectItem>
+              <SelectItem value="asc">{t("table.asc")}</SelectItem>
+              <SelectItem value="desc">{t("table.desc")}</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -642,6 +650,7 @@ function SortControl({
 }
 
 function DataTableViewOptions<TData>({ table }: { table: ReactTable<TData> }) {
+  const { t, localize } = useI18n();
   const hideable = table
     .getAllColumns()
     .filter(
@@ -659,12 +668,12 @@ function DataTableViewOptions<TData>({ table }: { table: ReactTable<TData> }) {
           size="sm"
           variant="outline"
         >
-                    <SlidersHorizontal className="mr-2 size-4" />
-          View
+          <SlidersHorizontal className="me-2 size-4" />
+          {t("table.view")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-37.5">
-        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("table.toggleColumns")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {hideable.map((column) => (
           <DropdownMenuCheckboxItem
@@ -673,7 +682,9 @@ function DataTableViewOptions<TData>({ table }: { table: ReactTable<TData> }) {
             key={column.id}
             onCheckedChange={(value) => column.toggleVisibility(!!value)}
           >
-                        {column.id}
+            {typeof column.columnDef.header === "string"
+              ? column.columnDef.header
+              : column.id}
           </DropdownMenuCheckboxItem>
         ))}
       </DropdownMenuContent>
@@ -694,6 +705,7 @@ function LifecycleStatusFilter({
   options: string[];
   value: string;
 }) {
+  const { t, localize } = useI18n();
   const labelId = React.useId();
 
   return (
@@ -704,14 +716,15 @@ function LifecycleStatusFilter({
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value="all">{hasLifecycle ? "Live" : "All"}</SelectItem>
+            <SelectItem value="all">{hasLifecycle ? t("table.live") : t("table.all")}
+            </SelectItem>
             {options.map((option) => (
               <SelectItem key={option} value={option}>
-                                {capitalize(option)}
+                {capitalize(localize(option))}
               </SelectItem>
             ))}
             {hasLifecycle ? (
-              <SelectItem value="deleted">Deleted</SelectItem>
+              <SelectItem value="deleted">{t("table.deleted")}</SelectItem>
             ) : null}
           </SelectGroup>
         </SelectContent>
@@ -734,6 +747,7 @@ function SelectFilter({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const { t, localize } = useI18n();
   const labelId = React.useId();
 
   return (
@@ -745,7 +759,7 @@ function SelectFilter({
         <SelectContent>
           <SelectGroup>
             <SelectItem value="all">
-              {filter.allLabel ?? `All ${filter.label}`}
+              {filter.allLabel ?? t("table.allOf", { label: filter.label })}
             </SelectItem>
             {(filter.options ?? []).map((option) => (
               <SelectItem key={option.value} value={option.value}>

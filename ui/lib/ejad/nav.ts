@@ -25,9 +25,12 @@ import {
   Wrench,
 } from "lucide-react";
 import type * as React from "react";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 
 export type NavLink = {
   title: string;
+  /** Translated title; Administration links have none and stay English. */
+  key?: MessageKey;
   href: string;
   icon: React.ElementType;
   /** Page only works with a workspace (tenant) selected. */
@@ -48,6 +51,7 @@ export type NavEntry = NavLink | NavGroup;
 
 export type NavSection = {
   title: string;
+  key?: MessageKey;
   /** Section can be collapsed by the user. */
   collapsible?: boolean;
   items: NavEntry[];
@@ -73,12 +77,18 @@ export const EJAD_PHASES = {
 export const NAV_SECTIONS: NavSection[] = [
   {
     title: "Overview",
-
+    key: "nav.overview",
     items: [
-      { title: "Home", href: "/dashboard", icon: Home },
-      { title: "Workspaces", href: "/workspaces", icon: Layers },
+      { title: "Home", key: "nav.home", href: "/dashboard", icon: Home },
+      {
+        title: "Workspaces",
+        key: "nav.workspaces",
+        href: "/workspaces",
+        icon: Layers,
+      },
       {
         title: "Users",
+        key: "nav.users",
         href: "/users",
         icon: UserRound,
         platformAdminOnly: true,
@@ -87,40 +97,46 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Workspace",
-
+    key: "nav.workspace",
     items: [
       {
         title: "Devices",
+        key: "nav.devices",
         href: "/devices",
         icon: Cpu,
         requiresWorkspace: true,
       },
       {
         title: "Channels",
+        key: "nav.channels",
         href: "/channels",
         icon: Radio,
         requiresWorkspace: true,
       },
       {
         title: "Groups",
+        key: "nav.groups",
         href: "/device-groups",
         icon: FolderTree,
         requiresWorkspace: true,
       },
       {
         title: "Messages",
+        key: "nav.messages",
         href: "/messages",
         icon: MessageSquare,
         requiresWorkspace: true,
       },
       {
         title: "Dashboards",
+        key: "nav.dashboards",
         href: "/dashboards",
         icon: LayoutDashboard,
         requiresWorkspace: true,
       },
       {
         title: "Members",
+        key: "nav.members",
         href: "/members",
         icon: UserCog,
         requiresWorkspace: true,
@@ -129,7 +145,7 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     title: "Administration",
-
+    key: "nav.administration",
     collapsible: true,
     items: [
       { title: "Tenants", href: "/tenants", icon: Building2, globalOnly: true },
@@ -179,6 +195,16 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+/** Pages of the Ejad product (translated); everything else is Atom admin. */
+export function isEjadPath(pathname: string) {
+  return NAV_SECTIONS.flatMap((section) => section.items).some(
+    (entry) =>
+      !isNavGroup(entry) &&
+      entry.key !== undefined &&
+      isActivePath(pathname, entry.href),
+  );
+}
 
 export function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);

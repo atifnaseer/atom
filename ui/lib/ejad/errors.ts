@@ -4,6 +4,13 @@
 // api/v1/graphql-error-contract.md); /api/ejad routes forward it as
 // `{ message, code }`. Branch on the code, never on the message text.
 
+import {
+  type Locale,
+  localizeText,
+  pageLocale,
+  translate,
+} from "@/lib/ejad/i18n/core";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 
 /** An /api/ejad response that was not ok, keeping Atom's error code. */
@@ -42,25 +49,24 @@ export function requestError(response: Response, payload: unknown) {
   );
 }
 
-/** Plain-language text for each code in Atom's GraphQL error contract. */
-export const ERROR_TEXT: Record<string, string> = {
-  BAD_REQUEST: "Some of the details are not valid. Check them and try again.",
-  UNAUTHENTICATED: "Your session has ended. Sign in again to continue.",
-  FORBIDDEN: "You do not have permission to do this in this workspace.",
-  NOT_FOUND: "This item no longer exists, or you cannot see it.",
-  CONFLICT:
-    "This conflicts with something that already exists or was just changed. Refresh and try again.",
-  PAYLOAD_TOO_LARGE:
-    "This is too large to send. Make it smaller and try again.",
-  RATE_LIMITED: "Too many requests right now. Wait a moment and try again.",
-  SERVICE_UNAVAILABLE:
-    "The service is temporarily unavailable. Try again in a moment.",
-  INTERNAL: "Something went wrong on our side. Try again later.",
-};
+/** The codes in Atom's GraphQL error contract (texts in i18n/messages.ts). */
+export const ERROR_CODES = [
+  "BAD_REQUEST",
+  "UNAUTHENTICATED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "CONFLICT",
+  "PAYLOAD_TOO_LARGE",
+  "RATE_LIMITED",
+  "SERVICE_UNAVAILABLE",
+  "INTERNAL",
+] as const;
 
-const NETWORK_TEXT =
-  "Cannot reach the server. Check your connection and try again.";
-const UNKNOWN_TEXT = "Something went wrong. Try again.";
+function codeText(locale: Locale, code: string | undefined) {
+  return code && (ERROR_CODES as readonly string[]).includes(code)
+    ? translate(locale, `error.${code}` as MessageKey)
+    : undefined;
+}
 
 const CODE_BY_STATUS: Record<number, string> = {
   400: "BAD_REQUEST",
@@ -114,33 +120,40 @@ function isNetworkError(error: unknown) {
 }
 
 /** Turns any thrown value into something a client can read. */
-export function friendlyError(error: unknown): FriendlyError {
-  if (isNetworkError(error)) return { message: NETWORK_TEXT };
+export function friendlyError(
+  error: unknown,
+  locale: Locale = pageLocale(),
+): FriendlyError {
+  if (isNetworkError(error))
+    return { message: translate(locale, "error.network") };
   const code = errorCode(error);
   const raw = error instanceof Error ? error.message.trim() : "";
   const requestId =
     error instanceof AtomGraphqlError || error instanceof RequestError
       ? error.requestId
       : undefined;
-  const text = code ? ERROR_TEXT[code] : undefined;
+  const text = codeText(locale, code);
   if (text) {
     const detail =
       DETAIL_CODES.has(code ?? "") && raw && !TECHNICAL.test(raw)
-        ? sentence(raw)
+        ? localizeText(locale, sentence(raw))
         : undefined;
     return { message: text, detail, code, requestId };
   }
   // No code: a message written by an /api/ejad route or by Ejad itself
   // ("Select a workspace first."), which is already plain language.
   if (raw && !TECHNICAL.test(raw)) {
-    return { message: sentence(raw), code, requestId };
+    return { message: localizeText(locale, sentence(raw)), code, requestId };
   }
-  return { message: UNKNOWN_TEXT, code, requestId };
+  return { message: translate(locale, "error.unknown"), code, requestId };
 }
 
 /** One line for a toast or an inline hint. */
-export function errorText(error: unknown): string {
-  const { message, detail } = friendlyError(error);
+export function errorText(
+  error: unknown,
+  locale: Locale = pageLocale(),
+): string {
+  const { message, detail } = friendlyError(error, locale);
   return detail ? `${message} ${detail}` : message;
 }
 

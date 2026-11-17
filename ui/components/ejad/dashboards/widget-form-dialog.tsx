@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { useMeasurementNames } from "@/components/ejad/dashboards/use-widget-data";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,6 +52,7 @@ import {
   type WidgetSize,
   type WidgetType,
 } from "@/lib/ejad/dashboards";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 import { STATUS_COLORS, STATUS_LABELS } from "@/lib/ejad/viz";
 import { cn } from "@/lib/utils";
 
@@ -62,12 +64,20 @@ const TYPE_ICONS: Record<WidgetType, LucideIcon> = {
   device_status: Cpu,
 };
 
-const TYPE_HINTS: Record<WidgetType, string> = {
-  line: "One or more measurements over time",
-  value: "The newest reading, with colour thresholds",
-  gauge: "The newest reading between a min and max",
-  table: "The newest messages of a channel",
-  device_status: "Devices by status in this workspace",
+const TYPE_HINTS: Record<WidgetType, MessageKey> = {
+  line: "widgetForm.hint.line",
+  value: "widgetForm.hint.value",
+  gauge: "widgetForm.hint.gauge",
+  table: "widgetForm.hint.table",
+  device_status: "widgetForm.hint.deviceStatus",
+};
+
+const ADD_TYPE: Record<WidgetType, MessageKey> = {
+  line: "widgetForm.add.line",
+  value: "widgetForm.add.value",
+  gauge: "widgetForm.add.gauge",
+  table: "widgetForm.add.table",
+  device_status: "widgetForm.add.deviceStatus",
 };
 
 const MAX_THRESHOLDS = 4;
@@ -209,6 +219,7 @@ export function WidgetFormDialog({
   onOpenChange: (open: boolean) => void;
   onSave: (widget: Widget) => void;
 }) {
+  const { t, localize } = useI18n();
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [problem, setProblem] = React.useState<string | null>(null);
 
@@ -227,7 +238,7 @@ export function WidgetFormDialog({
     if (!draft) return;
     const result = buildWidget(draft);
     if (typeof result === "string") {
-      setProblem(result);
+      setProblem(localize(result));
       return;
     }
     onSave(result);
@@ -242,15 +253,13 @@ export function WidgetFormDialog({
         <DialogHeader>
           <DialogTitle>
             {editing
-              ? "Edit widget"
+              ? t("widgetForm.edit")
               : draft
-                ? `Add ${WIDGET_TYPE_LABELS[draft.type].toLowerCase()}`
-                : "Add widget"}
+                ? t(ADD_TYPE[draft.type])
+                : t("dashboards.addWidget")}
           </DialogTitle>
           <DialogDescription>
-            {draft
-              ? TYPE_HINTS[draft.type]
-              : "Pick what the widget shows. Channel data comes from stored messages."}
+            {draft ? t(TYPE_HINTS[draft.type]) : t("widgetForm.pickHint")}
           </DialogDescription>
         </DialogHeader>
 
@@ -269,7 +278,7 @@ export function WidgetFormDialog({
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               ) : (
                 <Button
@@ -277,10 +286,12 @@ export function WidgetFormDialog({
                   variant="outline"
                   onClick={() => setDraft(null)}
                 >
-                  Back
+                  {t("common.back")}
                 </Button>
               )}
-              <Button type="submit">{editing ? "Apply" : "Add widget"}</Button>
+              <Button type="submit">
+                {editing ? t("widgetForm.apply") : t("dashboards.addWidget")}
+              </Button>
             </DialogFooter>
           </form>
         ) : (
@@ -292,15 +303,15 @@ export function WidgetFormDialog({
                   <button
                     type="button"
                     onClick={() => setDraft(emptyDraft(type))}
-                    className="flex h-full w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    className="flex h-full w-full items-start gap-3 rounded-lg border p-3 text-start transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                   >
                     <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
                     <span className="grid gap-0.5">
                       <span className="text-sm font-medium">
-                        {WIDGET_TYPE_LABELS[type]}
+                        {localize(WIDGET_TYPE_LABELS[type])}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {TYPE_HINTS[type]}
+                        {t(TYPE_HINTS[type])}
                       </span>
                     </span>
                   </button>
@@ -343,6 +354,7 @@ function WidgetFields({
   channels: Channel[] | undefined;
   update: (patch: Partial<Draft>) => void;
 }) {
+  const { t, localize } = useI18n();
   const id = React.useId();
   const needsChannel = draft.type !== "device_status";
   const names = useMeasurementNames(
@@ -352,17 +364,17 @@ function WidgetFields({
 
   return (
     <>
-      <Field label="Title" htmlFor={`${id}-title`}>
+      <Field label={t("widgetForm.title")} htmlFor={`${id}-title`}>
         <Input
           id={`${id}-title`}
-          placeholder="Optional"
+          placeholder={t("common.optional")}
           value={draft.title}
           onChange={(event) => update({ title: event.target.value })}
         />
       </Field>
 
       {needsChannel ? (
-        <Field label="Channel" htmlFor={`${id}-channel`}>
+        <Field label={t("page.channel.title")} htmlFor={`${id}-channel`}>
           <Select
             value={draft.channelId}
             onValueChange={(channelId) =>
@@ -373,8 +385,8 @@ function WidgetFields({
               <SelectValue
                 placeholder={
                   channels && channels.length === 0
-                    ? "No channels in this workspace"
-                    : "Pick a channel"
+                    ? t("widgetForm.noChannels")
+                    : t("server.pickChannel")
                 }
               />
             </SelectTrigger>
@@ -403,18 +415,20 @@ function WidgetFields({
         draft.type === "table") &&
       draft.channelId ? (
         <Field
-          label={draft.type === "table" ? "Measurement filter" : "Measurement"}
-          htmlFor={`${id}-name`}
-          hint={
+          label={
             draft.type === "table"
-              ? "Leave empty to show every measurement."
-              : undefined
+              ? t("widgetForm.measurementFilter")
+              : t("widgetForm.measurement")
           }
+          htmlFor={`${id}-name`}
+          hint={draft.type === "table" ? t("widgetForm.filterHint") : undefined}
         >
           <Input
             id={`${id}-name`}
             placeholder={
-              draft.type === "table" ? "All measurements" : "temperature"
+              draft.type === "table"
+                ? t("widgetForm.allMeasurements")
+                : "temperature"
             }
             value={draft.name}
             onChange={(event) => update({ name: event.target.value })}
@@ -429,7 +443,7 @@ function WidgetFields({
       ) : null}
 
       {draft.type === "line" ? (
-        <Field label="Time range" htmlFor={`${id}-range`}>
+        <Field label={t("widgetForm.timeRange")} htmlFor={`${id}-range`}>
           <Select
             value={draft.range}
             onValueChange={(range) => update({ range: range as TimeRange })}
@@ -440,9 +454,11 @@ function WidgetFields({
             <SelectContent>
               {TIME_RANGES.map((range) => (
                 <SelectItem key={range} value={range}>
-                  {TIME_RANGE_SPECS[range].label}
+                  {localize(TIME_RANGE_SPECS[range].label)}
                   {TIME_RANGE_SPECS[range].interval
-                    ? ` (average per ${TIME_RANGE_SPECS[range].interval})`
+                    ? ` (${t("widgetForm.averagePer", {
+                        interval: TIME_RANGE_SPECS[range].interval,
+                      })})`
                     : ""}
                 </SelectItem>
               ))}
@@ -453,9 +469,9 @@ function WidgetFields({
 
       {draft.type === "value" || draft.type === "gauge" ? (
         <Field
-          label="Unit"
+          label={t("messages.unit")}
           htmlFor={`${id}-unit`}
-          hint="Leave empty to use the unit sent with the message."
+          hint={t("widgetForm.unitHint")}
         >
           <Input
             id={`${id}-unit`}
@@ -468,7 +484,7 @@ function WidgetFields({
 
       {draft.type === "gauge" ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Min" htmlFor={`${id}-min`}>
+          <Field label={t("widgetForm.min")} htmlFor={`${id}-min`}>
             <Input
               id={`${id}-min`}
               inputMode="decimal"
@@ -476,7 +492,7 @@ function WidgetFields({
               onChange={(event) => update({ min: event.target.value })}
             />
           </Field>
-          <Field label="Max" htmlFor={`${id}-max`}>
+          <Field label={t("widgetForm.max")} htmlFor={`${id}-max`}>
             <Input
               id={`${id}-max`}
               inputMode="decimal"
@@ -495,7 +511,7 @@ function WidgetFields({
       ) : null}
 
       {draft.type === "table" ? (
-        <Field label="Rows" htmlFor={`${id}-rows`}>
+        <Field label={t("widgetForm.rows")} htmlFor={`${id}-rows`}>
           <Select
             value={String(draft.rows)}
             onValueChange={(rows) => update({ rows: Number(rows) })}
@@ -506,7 +522,7 @@ function WidgetFields({
             <SelectContent>
               {TABLE_ROW_OPTIONS.map((rows) => (
                 <SelectItem key={rows} value={String(rows)}>
-                  {rows} messages
+                  {t("widgetForm.nMessages", { count: rows })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -514,7 +530,7 @@ function WidgetFields({
         </Field>
       ) : null}
 
-      <Field label="Size">
+      <Field label={t("widgetForm.size")}>
         <div className="flex gap-2">
           {WIDGET_SIZES.map((size) => (
             <Button
@@ -526,7 +542,7 @@ function WidgetFields({
               onClick={() => update({ size })}
               className="capitalize"
             >
-              {size}
+              {t(`widget.${size}`)}
             </Button>
           ))}
         </div>
@@ -546,20 +562,21 @@ function NameChips({
   isSelected: (name: string) => boolean;
   onPick: (name: string) => void;
 }) {
+  const { t } = useI18n();
   if (loading)
     return (
-      <p className="text-xs text-muted-foreground">Looking for measurements…</p>
+      <p className="text-xs text-muted-foreground">{t("widgetForm.looking")}</p>
     );
   if (suggestions.length === 0)
     return (
       <p className="text-xs text-muted-foreground">
-        No stored messages yet; type the measurement name (SenML “n”).
+        {t("widgetForm.noSuggestions")}
       </p>
     );
   return (
     <fieldset
       className="flex flex-wrap gap-1.5"
-      aria-label="Measurements seen recently"
+      aria-label={t("widgetForm.seenRecently")}
     >
       {suggestions.map((name) => (
         <button
@@ -592,6 +609,7 @@ function SeriesPicker({
   loading: boolean;
   onChange: (names: string[]) => void;
 }) {
+  const { t } = useI18n();
   const id = React.useId();
   const [custom, setCustom] = React.useState("");
   const full = selected.length >= LINE_MAX_SERIES;
@@ -613,9 +631,9 @@ function SeriesPicker({
 
   return (
     <Field
-      label="Measurements"
+      label={t("widgetForm.measurements")}
       htmlFor={`${id}-custom`}
-      hint={`Up to ${LINE_MAX_SERIES}. Numeric values are charted.`}
+      hint={t("widgetForm.seriesHint", { count: LINE_MAX_SERIES })}
     >
       <NameChips
         suggestions={suggestions}
@@ -633,7 +651,7 @@ function SeriesPicker({
               {name}
               <button
                 type="button"
-                aria-label={`Remove ${name}`}
+                aria-label={t("common.removeName", { name })}
                 onClick={() => toggle(name)}
               >
                 <X className="size-3" />
@@ -645,7 +663,7 @@ function SeriesPicker({
       <div className="flex gap-2">
         <Input
           id={`${id}-custom`}
-          placeholder="Another measurement name"
+          placeholder={t("widgetForm.another")}
           value={custom}
           disabled={full}
           onChange={(event) => setCustom(event.target.value)}
@@ -663,7 +681,7 @@ function SeriesPicker({
           onClick={addCustom}
         >
           <Plus />
-          Add
+          {t("widgetForm.add")}
         </Button>
       </div>
     </Field>
@@ -677,13 +695,14 @@ function ThresholdsEditor({
   thresholds: Draft["thresholds"];
   onChange: (thresholds: Draft["thresholds"]) => void;
 }) {
+  const { t, localize } = useI18n();
   const set = (index: number, patch: Partial<Draft["thresholds"][number]>) =>
     onChange(thresholds.map((t, i) => (i === index ? { ...t, ...patch } : t)));
   return (
     <div className="grid grid-cols-1 gap-2">
-      <Label>Colour thresholds</Label>
+      <Label>{t("widgetForm.thresholds")}</Label>
       <p className="text-xs text-muted-foreground">
-        From each value upwards the reading is marked with that state.
+        {t("widgetForm.thresholdsHint")}
       </p>
       {thresholds.map((threshold, index) => (
         <div
@@ -694,7 +713,7 @@ function ThresholdsEditor({
         >
           <span className="text-sm text-muted-foreground">≥</span>
           <Input
-            aria-label={`Threshold ${index + 1} value`}
+            aria-label={t("widgetForm.thresholdValue", { n: index + 1 })}
             inputMode="decimal"
             className="w-28"
             value={threshold.value}
@@ -707,7 +726,7 @@ function ThresholdsEditor({
             }
           >
             <SelectTrigger
-              aria-label={`Threshold ${index + 1} state`}
+              aria-label={t("widgetForm.thresholdState", { n: index + 1 })}
               className="flex-1"
             >
               <SelectValue />
@@ -719,7 +738,7 @@ function ThresholdsEditor({
                     className="size-2.5 rounded-full"
                     style={{ background: STATUS_COLORS[color] }}
                   />
-                  {STATUS_LABELS[color]}
+                  {localize(STATUS_LABELS[color])}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -728,7 +747,7 @@ function ThresholdsEditor({
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Remove threshold ${index + 1}`}
+            aria-label={t("widgetForm.thresholdRemove", { n: index + 1 })}
             onClick={() => onChange(thresholds.filter((_, i) => i !== index))}
           >
             <Trash2 />
@@ -755,7 +774,7 @@ function ThresholdsEditor({
           }
         >
           <Plus />
-          Add threshold
+          {t("widgetForm.addThreshold")}
         </Button>
       ) : null}
     </div>

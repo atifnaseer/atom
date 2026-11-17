@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ export function ChannelDeleteDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: (channel: Pending) => void;
 }) {
+  const { t } = useI18n();
   const remove = useMutation({
     mutationFn: async (target: Pending) => {
       await graphqlClient({
@@ -41,7 +43,7 @@ export function ChannelDeleteDialog({
       return target;
     },
     onSuccess: (target) => {
-      toast.success(`Channel “${channelLabel(target)}” deleted`);
+      toast.success(t("channels.deleted", { name: channelLabel(target) }));
       onDeleted(target);
     },
     onError: (error) => toastError(error),
@@ -59,18 +61,19 @@ export function ChannelDeleteDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Delete channel “{channel ? channelLabel(channel) : ""}”?
+            {t("channels.deleteTitle", {
+              name: channel ? channelLabel(channel) : "",
+            })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Devices can no longer publish or subscribe to this channel
-            {route ? ` (route “${route}”)` : ""} and it is removed from this
-            workspace. A platform administrator can restore it until it is
-            purged.
+            {route
+              ? t("channels.deleteHintRoute", { route })
+              : t("channels.deleteHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={remove.isPending}>
-            Cancel
+            {t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -80,7 +83,7 @@ export function ChannelDeleteDialog({
               if (channel) remove.mutate(channel);
             }}
           >
-            {remove.isPending ? "Deleting…" : "Delete channel"}
+            {remove.isPending ? t("common.deleting") : t("channels.delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

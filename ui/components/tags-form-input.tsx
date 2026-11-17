@@ -1,5 +1,6 @@
 import { type Tag, TagInput } from "emblor";
 import { type Dispatch, type SetStateAction, useState } from "react";
+import { useT } from "@/components/ejad/i18n-provider";
 import {
   FormControl,
   FormDescription,
@@ -27,11 +28,12 @@ export function TagsFormInput({
   allowDuplicates?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const [activeTagIndex, setActiveTagIndex] = useState<number | null>(null);
 
   return (
     <FormItem className="flex flex-col items-start">
-      <FormLabel className="text-left">{label}</FormLabel>
+      <FormLabel className="text-start">{label}</FormLabel>
       <FormControl className="w-full">
         <TagInput
           {...field}
@@ -44,7 +46,7 @@ export function TagsFormInput({
           name="tags"
           shape="rounded"
           truncate={45}
-          className="pl-2"
+          className="ps-2"
           styleClasses={{
             tagList: {
               container: cn(className, "p-2"),
@@ -58,8 +60,7 @@ export function TagsFormInput({
         />
       </FormControl>
       <FormDescription className="text-xs text-muted-foreground">
-        Press <span className="font-extrabold">Enter</span> to add multiple{" "}
-        {label.toLowerCase()}.
+        {t("tags.hint", { label: label.toLowerCase() })}
       </FormDescription>
       <FormMessage />
     </FormItem>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import { useTenant } from "@/components/app-shell/tenant-provider";
+import { useT } from "@/components/ejad/i18n-provider";
 import { useAccess } from "@/components/ejad/use-access";
 import {
   SidebarGroup,
@@ -70,6 +71,8 @@ function NavSectionGroup({
   workspaceSelected: boolean;
   iconMode: boolean;
 }) {
+  const t = useT();
+  const title = section.key ? t(section.key) : section.title;
   const active = sectionIsActive(pathname, section);
   const [open, setOpen] = React.useState(active);
   // Expand when the user navigates into the section (e.g. via the command menu).
@@ -96,18 +99,18 @@ function NavSectionGroup({
             onClick={() => setOpen((value) => !value)}
             className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
-            {section.title}
+            {title}
             <ChevronRight
-              className={`ml-auto transition-transform ${open ? "rotate-90" : ""}`}
+              className={`ms-auto transition-transform ${open ? "rotate-90" : "rtl:rotate-180"}`}
             />
           </button>
         </SidebarGroupLabel>
       ) : (
-        <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+        <SidebarGroupLabel>{title}</SidebarGroupLabel>
       )}
       {needsWorkspace && !iconMode ? (
         <p className="px-2 pb-2 text-xs text-muted-foreground">
-          Select a workspace in the Workspace switcher above to use these pages.
+          {t("nav.needsWorkspace")}
         </p>
       ) : null}
       {expanded ? (
@@ -157,17 +160,19 @@ function NavLinkItem({
   pathname: string;
   disabled?: boolean;
 }) {
+  const t = useT();
+  const title = link.key ? t(link.key) : link.title;
   if (disabled) {
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
           type="button"
           aria-disabled="true"
-          tooltip={`${link.title}: select a workspace first`}
+          tooltip={t("nav.selectWorkspaceFirst", { title })}
           className="cursor-not-allowed aria-disabled:pointer-events-auto hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent"
         >
           <link.icon />
-          <span>{link.title}</span>
+          <span>{title}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
@@ -178,12 +183,12 @@ function NavLinkItem({
       <SidebarMenuButton
         asChild
         isActive={isActivePath(pathname, link.href)}
-        tooltip={link.title}
+        tooltip={title}
         className={ACTIVE_CLASS}
       >
         <Link href={link.href}>
           <link.icon />
-          <span>{link.title}</span>
+          <span>{title}</span>
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -214,7 +219,7 @@ function NavGroupItem({
         <group.icon />
         <span>{group.title}</span>
         <ChevronRight
-          className={`ml-auto transition-transform ${open ? "rotate-90" : ""}`}
+          className={`ms-auto transition-transform ${open ? "rotate-90" : "rtl:rotate-180"}`}
         />
       </SidebarMenuButton>
       {open ? (

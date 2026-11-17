@@ -19,6 +19,7 @@ import {
   type ConnectionRow,
 } from "@/components/ejad/connections/use-connections";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -70,6 +71,7 @@ export function ChannelConnectDialog({
   /** Current connections, to mark devices that are already connected. */
   existing: ConnectionRow[] | undefined;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search.trim());
@@ -126,7 +128,7 @@ export function ChannelConnectDialog({
       if (checked) {
         if (next.size >= MAX_DEVICES_PER_CONNECT) {
           toast.error(
-            `Pick at most ${MAX_DEVICES_PER_CONNECT} devices at a time.`,
+            t("connections.maxDevices", { count: MAX_DEVICES_PER_CONNECT }),
           );
           return current;
         }
@@ -144,7 +146,7 @@ export function ChannelConnectDialog({
         types,
       }),
     onSuccess: (result) => {
-      const { ok, message } = describeResult(result, "connect");
+      const { ok, message } = describeResult(result, "connect", t);
       (ok ? toast.success : toast.error)(message);
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       if (ok) onOpenChange(false);
@@ -161,10 +163,9 @@ export function ChannelConnectDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Connect devices</DialogTitle>
+          <DialogTitle>{t("connections.connectDevices")}</DialogTitle>
           <DialogDescription>
-            Allow devices to publish and/or subscribe to channel “{channelName}
-            ”.
+            {t("connections.channelHint", { name: channelName })}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -175,13 +176,13 @@ export function ChannelConnectDialog({
           }}
         >
           <div className="grid min-w-0 gap-2">
-            <Label htmlFor="connect-devices-search">Devices</Label>
+            <Label htmlFor="connect-devices-search">{t("nav.devices")}</Label>
             <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="connect-devices-search"
-                className="pl-8"
-                placeholder="Search devices…"
+                className="ps-8"
+                placeholder={t("connections.searchDevices")}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 disabled={connect.isPending}
@@ -190,11 +191,11 @@ export function ChannelConnectDialog({
             {selected.size > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {[...selected].map(([id, name]) => (
-                  <Badge key={id} variant="secondary" className="gap-1 pr-1">
+                  <Badge key={id} variant="secondary" className="gap-1 pe-1">
                     <span className="max-w-40 truncate">{name}</span>
                     <button
                       type="button"
-                      aria-label={`Remove ${name}`}
+                      aria-label={t("common.removeName", { name })}
                       className="rounded-sm opacity-70 hover:opacity-100"
                       onClick={() =>
                         setSelected((current) => {
@@ -215,7 +216,7 @@ export function ChannelConnectDialog({
                 {devices.isPending ? (
                   <p className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
-                    Loading devices…
+                    {t("connections.loadingDevices")}
                   </p>
                 ) : devices.error ? (
                   <p className="p-3 text-sm text-destructive">
@@ -223,7 +224,7 @@ export function ChannelConnectDialog({
                   </p>
                 ) : items.length === 0 ? (
                   <p className="p-3 text-sm text-muted-foreground">
-                    No devices found.
+                    {t("connections.noDevices")}
                   </p>
                 ) : (
                   items.map((device) => {
@@ -272,18 +273,20 @@ export function ChannelConnectDialog({
                     disabled={devices.isFetchingNextPage}
                     onClick={() => devices.fetchNextPage()}
                   >
-                    {devices.isFetchingNextPage ? "Loading…" : "Load more"}
+                    {devices.isFetchingNextPage
+                      ? t("common.loadingEllipsis")
+                      : t("common.loadMore")}
                   </Button>
                 ) : null}
               </div>
             </ScrollArea>
             <p className="text-xs text-muted-foreground">
-              {selected.size} selected. Badges show what a device can already do
-              here; existing permissions are kept.
+              {t("common.rowsSelected", { count: selected.size })}.{" "}
+              {t("connections.badgesHint")}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label>Permissions</Label>
+            <Label>{t("connections.permissions")}</Label>
             <ConnectionTypePicker
               idPrefix="connect-channel"
               value={types}
@@ -298,17 +301,17 @@ export function ChannelConnectDialog({
               disabled={connect.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={connect.isPending || !selected.size || !types.length}
             >
               {connect.isPending
-                ? "Connecting…"
+                ? t("connections.connecting")
                 : selected.size
-                  ? `Connect ${selected.size} device${selected.size === 1 ? "" : "s"}`
-                  : "Connect devices"}
+                  ? t("connections.connectN", { count: selected.size })
+                  : t("connections.connectDevices")}
             </Button>
           </DialogFooter>
         </form>

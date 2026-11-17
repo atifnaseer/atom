@@ -70,3 +70,17 @@ Rules:
   language. /api/ejad fetchers throw requestError(response, payload) so the
   code survives to the browser.
 - No sample/fake data anywhere: on a failed load show the error and no rows.
+- Arabic/English (Phase 9b): the language is the `ejad_locale` cookie (no
+  URL prefix). The root layout sets `<html lang dir>`; client code uses
+  `useI18n()` / `useT()` (components/ejad/i18n-provider.tsx), server code
+  `getI18n()` (lib/ejad/i18n/server.ts). Every string lives in
+  lib/ejad/i18n/messages.ts with `en` and `ar` side by side; never write
+  user-facing English in a component. Plurals use the `count` var
+  (Intl.PluralRules). Numbers and dates go through `format.number` /
+  `format.date` / `format.relative` (ar-SA digits, Gregorian calendar).
+  Fixed English sentences from lib/ejad validators and /api/ejad routes are
+  translated by exact match (`localize`), so add an entry with the same
+  English text. Use logical classes (ms/me/ps/pe/start/end/text-start/end,
+  border-s/e) and `rtl:rotate-180` on direction arrows; code, IDs, topics
+  and JSON stay `dir="ltr"`. Atom Administration pages stay English and LTR
+  (`<EnglishOnly>` in the app shell).

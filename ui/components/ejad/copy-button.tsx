@@ -3,11 +3,12 @@
 import { Check, Copy } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
+import { useT } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 
 export function CopyButton({
   value,
-  label = "Copy",
+  label,
   size = "sm",
   variant = "outline",
 }: {
@@ -16,6 +17,8 @@ export function CopyButton({
   size?: "sm" | "icon" | "default";
   variant?: "outline" | "ghost" | "default" | "secondary";
 }) {
+  const t = useT();
+  const text = label ?? t("common.copy");
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
@@ -29,7 +32,7 @@ export function CopyButton({
       await navigator.clipboard.writeText(value);
       setCopied(true);
     } catch {
-      toast.error("Could not copy to the clipboard.");
+      toast.error(t("common.copyFailed"));
     }
   }
 
@@ -39,10 +42,10 @@ export function CopyButton({
       variant={variant}
       size={size}
       onClick={copy}
-      aria-label={label}
+      aria-label={text}
     >
       {copied ? <Check /> : <Copy />}
-      {size === "icon" ? null : copied ? "Copied" : label}
+      {size === "icon" ? null : copied ? t("common.copied") : text}
     </Button>
   );
 }

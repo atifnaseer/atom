@@ -26,11 +26,20 @@ function statusClass(normalized: string): string {
   }
 }
 
-export function StatusBadge({ value }: { value: unknown }) {
+export function StatusBadge({
+  value,
+  label,
+}: {
+  value: unknown;
+  /** Display text when it differs from the value (e.g. translated). */
+  label?: string;
+}) {
   const text = String(value ?? "");
 
   if (!text) return null;
   return (
-    <span className={cn(BASE, statusClass(text.toLowerCase()))}>{text}</span>
+    <span className={cn(BASE, statusClass(text.toLowerCase()))}>
+      {label ?? text}
+    </span>
   );
 }

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Database } from "lucide-react";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { useAccess } from "@/components/ejad/use-access";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -32,6 +33,7 @@ export async function storeRequest(
  * and the ejad-store service saves its messages; off = the flag is removed.
  */
 export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const canChange = useAccess().can("manage");
   const queryKey = [STORE_STATE_QUERY_KEY, channelId];
@@ -48,11 +50,7 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
       }),
     onSuccess: (state) => {
       queryClient.setQueryData(queryKey, state);
-      toast.success(
-        state.enabled
-          ? "Messages on this channel are now stored."
-          : "Messages on this channel are no longer stored.",
-      );
+      toast.success(state.enabled ? t("store.on") : t("store.off"));
     },
     onError: (err) => toastError(err),
   });
@@ -68,14 +66,14 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
           <Database className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
           <div className="grid grid-cols-1 gap-1">
             <Label htmlFor={`store-${channelId}`} className="font-medium">
-              Store messages
+              {t("store.label")}
             </Label>
             <p className="text-sm text-muted-foreground">
               {error
-                ? `Could not load the setting. ${errorText(error)}`
+                ? `${t("store.loadFailed")} ${errorText(error)}`
                 : canChange
-                  ? "Save messages published to this channel so they appear below."
-                  : "Whether messages published to this channel are saved. Only workspace Admins and Operators can change this."}
+                  ? t("store.hint")
+                  : t("store.hintReadOnly")}
             </p>
           </div>
         </div>

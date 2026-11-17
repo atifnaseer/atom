@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -69,14 +70,13 @@ export function WorkspaceEditDialog({
   onOpenChange: (open: boolean) => void;
   onSaved: (workspace: Workspace) => void;
 }) {
+  const { t } = useI18n();
   return (
     <Dialog open={workspace !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit workspace</DialogTitle>
-          <DialogDescription>
-            Change the name, tags and metadata of this workspace.
-          </DialogDescription>
+          <DialogTitle>{t("workspaces.edit")}</DialogTitle>
+          <DialogDescription>{t("workspaces.editHint")}</DialogDescription>
         </DialogHeader>
         {workspace ? (
           <EditForm
@@ -100,6 +100,7 @@ function EditForm({
   onCancel: () => void;
   onSaved: (workspace: Workspace) => void;
 }) {
+  const { t } = useI18n();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -136,7 +137,7 @@ function EditForm({
       return data.updateTenant;
     },
     onSuccess: (updated) => {
-      toast.success(`Workspace “${updated.name}” updated`);
+      toast.success(t("workspaces.updated", { name: updated.name }));
       onSaved(updated);
     },
     onError: (error) => toastError(error),
@@ -153,7 +154,7 @@ function EditForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <RequiredFormLabel required>Name</RequiredFormLabel>
+              <RequiredFormLabel required>{t("common.name")}</RequiredFormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -162,16 +163,17 @@ function EditForm({
           )}
         />
         <div className="grid grid-cols-1 gap-2">
-          <Label htmlFor="workspace-route">Route</Label>
+          <Label htmlFor="workspace-route">{t("workspaces.route")}</Label>
           <Input
             id="workspace-route"
+            dir="ltr"
             className="font-mono"
             value={workspace.alias ?? ""}
             readOnly
             disabled
           />
           <p className="text-muted-foreground text-sm">
-            The route cannot be changed.
+            {t("workspaces.routeLocked")}
           </p>
         </div>
         <FormField
@@ -180,9 +182,9 @@ function EditForm({
           render={({ field }) => (
             <TagsFormInput
               field={field}
-              label="Tags"
+              label={t("workspaces.tags")}
               newTags={tagItems}
-              placeholder="Type a tag and press Enter"
+              placeholder={t("workspaces.tagsPlaceholder")}
               setTags={setTagItems}
             />
           )}
@@ -192,7 +194,7 @@ function EditForm({
           name="metadata"
           render={({ field }) => (
             <FormItem className="min-w-0">
-              <FormLabel>Metadata</FormLabel>
+              <FormLabel>{t("workspaces.metadata")}</FormLabel>
               <FormControl>
                 <JsonEditor
                   className="[&_.cm-editor]:min-h-32"
@@ -200,17 +202,17 @@ function EditForm({
                   value={field.value}
                 />
               </FormControl>
-              <FormDescription>A JSON object.</FormDescription>
+              <FormDescription>{t("workspaces.metadataHint")}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" disabled={update.isPending}>
-            {update.isPending ? "Saving…" : "Save changes"}
+            {update.isPending ? t("common.saving") : t("common.saveChanges")}
           </Button>
         </DialogFooter>
       </form>

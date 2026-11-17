@@ -10,6 +10,7 @@ import {
 } from "@/components/ejad/connections/request-connections";
 import { CONNECTIONS_QUERY_KEY } from "@/components/ejad/connections/use-connections";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { AsyncCombobox, type ComboPage } from "@/components/ui/async-combobox";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,7 @@ export function DeviceConnectDialog({
   deviceId: string;
   deviceName: string;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [channelId, setChannelId] = React.useState("");
   const [types, setTypes] = React.useState<ConnectionType[]>([
@@ -103,7 +105,7 @@ export function DeviceConnectDialog({
         types,
       }),
     onSuccess: (result) => {
-      const { ok, message } = describeResult(result, "connect");
+      const { ok, message } = describeResult(result, "connect", t);
       (ok ? toast.success : toast.error)(message);
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       if (ok) onOpenChange(false);
@@ -120,10 +122,9 @@ export function DeviceConnectDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Connect to channel</DialogTitle>
+          <DialogTitle>{t("connections.connectToChannel")}</DialogTitle>
           <DialogDescription>
-            Allow device “{deviceName}” to publish and/or subscribe to a channel
-            in this workspace.
+            {t("connections.deviceHint", { name: deviceName })}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -134,21 +135,21 @@ export function DeviceConnectDialog({
           }}
         >
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="connect-channel">Channel</Label>
+            <Label htmlFor="connect-channel">{t("page.channel.title")}</Label>
             <AsyncCombobox
               id="connect-channel"
               value={channelId}
               onChange={setChannelId}
               queryKey={["ejad-connect-channels", workspaceId]}
               fetchPage={fetchPage}
-              placeholder="Select a channel"
-              searchPlaceholder="Search channels…"
-              emptyText="No channels found."
+              placeholder={t("connections.selectChannel")}
+              searchPlaceholder={t("connections.searchChannels")}
+              emptyText={t("connections.noChannels")}
               disabled={connect.isPending}
             />
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label>Permissions</Label>
+            <Label>{t("connections.permissions")}</Label>
             <ConnectionTypePicker
               idPrefix="connect-device"
               value={types}
@@ -163,13 +164,15 @@ export function DeviceConnectDialog({
               disabled={connect.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={connect.isPending || !channelId || !types.length}
             >
-              {connect.isPending ? "Connecting…" : "Connect"}
+              {connect.isPending
+                ? t("connections.connecting")
+                : t("connections.connect")}
             </Button>
           </DialogFooter>
         </form>

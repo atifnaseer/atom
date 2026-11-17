@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toastError } from "@/components/ejad/error-alert";
+import { useT } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ import {
   duplicateDashboard,
   renameDashboard,
 } from "@/lib/ejad/dashboards";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 import { graphqlClient } from "@/lib/graphql/client";
 
 const schema = z.object({
@@ -53,24 +55,24 @@ export type DashboardNameTarget =
 
 const COPY = {
   create: {
-    title: "Create dashboard",
-    description: "Start with an empty dashboard and add widgets to it.",
-    submit: "Create dashboard",
-    done: "created",
+    title: "dashboards.create",
+    description: "dashboards.createHint",
+    submit: "dashboards.create",
+    done: "dashboards.created",
   },
   rename: {
-    title: "Rename dashboard",
-    description: "Change the dashboard’s name.",
-    submit: "Save",
-    done: "renamed",
+    title: "dashboards.rename",
+    description: "dashboards.renameHint",
+    submit: "common.save",
+    done: "dashboards.renamed",
   },
   duplicate: {
-    title: "Duplicate dashboard",
-    description: "The copy gets the same widgets.",
-    submit: "Duplicate",
-    done: "created",
+    title: "dashboards.duplicateTitle",
+    description: "dashboards.duplicateHint",
+    submit: "dashboards.duplicate",
+    done: "dashboards.created",
   },
-} as const;
+} as const satisfies Record<string, Record<string, MessageKey>>;
 
 export function DashboardNameDialog({
   workspaceId,
@@ -83,6 +85,7 @@ export function DashboardNameDialog({
   onOpenChange: (open: boolean) => void;
   onSaved: (dashboard: Dashboard, mode: DashboardNameTarget["mode"]) => void;
 }) {
+  const t = useT();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { name: "" },
@@ -112,7 +115,7 @@ export function DashboardNameDialog({
     onSuccess: (dashboard) => {
       if (!target) return;
       toast.success(
-        `Dashboard “${dashboardName(dashboard)}” ${COPY[target.mode].done}`,
+        t(COPY[target.mode].done, { name: dashboardName(dashboard) }),
       );
       onSaved(dashboard, target.mode);
       onOpenChange(false);
@@ -133,8 +136,8 @@ export function DashboardNameDialog({
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.description}</DialogDescription>
+          <DialogTitle>{t(copy.title)}</DialogTitle>
+          <DialogDescription>{t(copy.description)}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -146,11 +149,13 @@ export function DashboardNameDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Name</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("common.name")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       autoFocus
-                      placeholder="Cold room"
+                      placeholder={t("dashboards.namePlaceholder")}
                       disabled={save.isPending}
                       {...field}
                     />
@@ -166,10 +171,10 @@ export function DashboardNameDialog({
                 disabled={save.isPending}
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={save.isPending}>
-                {save.isPending ? "Saving…" : copy.submit}
+                {save.isPending ? t("common.saving") : t(copy.submit)}
               </Button>
             </DialogFooter>
           </form>

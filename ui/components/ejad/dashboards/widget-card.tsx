@@ -18,6 +18,7 @@ import {
   TableWidgetView,
   ValueWidgetView,
 } from "@/components/ejad/dashboards/widgets";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -36,6 +37,7 @@ import {
   widgetTitle,
 } from "@/lib/ejad/dashboards";
 import { errorCode, errorText } from "@/lib/ejad/errors";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 import { cn } from "@/lib/utils";
 
 /** Columns a widget spans: 1 column on phones, 2 on tablets, 4 on desktops. */
@@ -45,10 +47,10 @@ export const WIDGET_SPAN: Record<WidgetSize, string> = {
   large: "col-span-1 md:col-span-2 xl:col-span-4",
 };
 
-const SIZE_LABELS: Record<WidgetSize, string> = {
-  small: "S",
-  medium: "M",
-  large: "L",
+const SIZE_KEYS: Record<WidgetSize, { short: MessageKey; long: MessageKey }> = {
+  small: { short: "widget.sizeS", long: "widget.small" },
+  medium: { short: "widget.sizeM", long: "widget.medium" },
+  large: { short: "widget.sizeL", long: "widget.large" },
 };
 
 export type WidgetEditing = {
@@ -83,12 +85,13 @@ function WidgetBody({
 
 /** A short note when the widget's channel does not store its messages. */
 function StoreHint({ channelId }: { channelId: string }) {
+  const { t } = useI18n();
   const { data, error } = useStoreState(channelId);
   if (error)
     return (
       <p className="text-xs text-destructive">
         {errorCode(error) === "NOT_FOUND"
-          ? "This channel no longer exists."
+          ? t("widget.channelGone")
           : errorText(error)}
       </p>
     );
@@ -97,12 +100,12 @@ function StoreHint({ channelId }: { channelId: string }) {
     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <DatabaseZap className="size-3.5 shrink-0" />
       <span>
-        Store messages is off.{" "}
+        {t("widget.storeOff")}{" "}
         <Link
           href={`/channels/${channelId}`}
           className="font-medium text-foreground underline underline-offset-2"
         >
-          Turn it on
+          {t("widget.turnOn")}
         </Link>
       </span>
     </p>
@@ -124,11 +127,12 @@ export function WidgetCard({
   dragging?: boolean;
   dropTarget?: boolean;
 }) {
+  const { t, localize } = useI18n();
   const channelId = isChannelWidget(widget) ? widget.channelId : null;
   const channel = channelId
     ? channels?.find((item) => item.id === channelId)
     : undefined;
-  const title = widgetTitle(widget);
+  const title = localize(widgetTitle(widget));
 
   return (
     <Card
@@ -152,7 +156,7 @@ export function WidgetCard({
           </h2>
           {channelId ? (
             <p className="truncate text-xs text-muted-foreground">
-              {channel ? channelLabel(channel) : "Channel"}
+              {channel ? channelLabel(channel) : t("page.channel.title")}
             </p>
           ) : null}
         </div>
@@ -179,12 +183,13 @@ function WidgetEditControls({
   widget: Widget;
   editing: WidgetEditing;
 }) {
-  const title = widgetTitle(widget);
+  const { t, localize } = useI18n();
+  const title = localize(widgetTitle(widget));
   return (
     <div className="flex shrink-0 items-center gap-1">
       <fieldset
         className="flex rounded-md border p-0.5"
-        aria-label={`Size of ${title}`}
+        aria-label={t("widget.sizeOf", { title })}
       >
         {WIDGET_SIZES.map((size) => (
           <button
@@ -197,10 +202,10 @@ function WidgetEditControls({
                 : "text-muted-foreground hover:bg-muted",
             )}
             aria-pressed={widget.size === size}
-            aria-label={size}
+            aria-label={t(SIZE_KEYS[size].long)}
             onClick={() => editing.onResize(size)}
           >
-            {SIZE_LABELS[size]}
+            {t(SIZE_KEYS[size].short)}
           </button>
         ))}
       </fieldset>
@@ -210,7 +215,7 @@ function WidgetEditControls({
             variant="ghost"
             size="icon"
             className="size-7"
-            aria-label={`Actions for ${title}`}
+            aria-label={t("common.actionsFor", { name: title })}
           >
             <MoreVertical />
           </Button>
@@ -218,26 +223,26 @@ function WidgetEditControls({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={editing.onEdit}>
             <Pencil />
-            Edit
+            {t("common.edit")}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={editing.index === 0}
             onSelect={() => editing.onMove(editing.index - 1)}
           >
-            <ArrowLeft />
-            Move earlier
+            <ArrowLeft className="rtl:rotate-180" />
+            {t("widget.moveEarlier")}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={editing.index === editing.count - 1}
             onSelect={() => editing.onMove(editing.index + 1)}
           >
-            <ArrowRight />
-            Move later
+            <ArrowRight className="rtl:rotate-180" />
+            {t("widget.moveLater")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={editing.onRemove}>
             <Trash2 />
-            Remove
+            {t("common.remove")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

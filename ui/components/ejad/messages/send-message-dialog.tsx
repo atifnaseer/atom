@@ -5,6 +5,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import type { ConnectionRow } from "@/components/ejad/connections/use-connections";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { MESSAGES_QUERY_KEY } from "@/components/ejad/messages/use-messages";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ export function SendMessageDialog({
   /** Devices connected to the channel (only publishers are offered). */
   devices: ConnectionRow[] | undefined;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const publishers = React.useMemo(
     () => (devices ?? []).filter((row) => row.publish && row.peerExists),
@@ -86,7 +88,9 @@ export function SendMessageDialog({
       postMessage({ channelId, deviceId, name, value, unit: unit.trim() }),
     onSuccess: (result) => {
       toast.success(
-        `Message sent${result.topic ? ` to ${result.topic}` : ""}. It shows up once the rules engine saves it.`,
+        result.topic
+          ? t("send.sentTo", { topic: result.topic })
+          : t("send.sent"),
       );
       queryClient.invalidateQueries({ queryKey: [MESSAGES_QUERY_KEY] });
       setValue("");
@@ -105,16 +109,14 @@ export function SendMessageDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Send message</DialogTitle>
+          <DialogTitle>{t("send.title")}</DialogTitle>
           <DialogDescription>
-            Publish a SenML record to “{channelName}” over HTTP as one of its
-            connected devices.
+            {t("send.hint", { name: channelName })}
           </DialogDescription>
         </DialogHeader>
         {devices && publishers.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No device may publish to this channel. Connect a device with the
-            publish permission on the Connections tab first.
+            {t("send.noPublishers")}
           </p>
         ) : (
           <form
@@ -125,14 +127,14 @@ export function SendMessageDialog({
             }}
           >
             <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="send-device">Device</Label>
+              <Label htmlFor="send-device">{t("page.device.title")}</Label>
               <Select
                 value={deviceId}
                 onValueChange={setDeviceId}
                 disabled={send.isPending}
               >
                 <SelectTrigger id="send-device" className="w-full">
-                  <SelectValue placeholder="Select a device" />
+                  <SelectValue placeholder={t("send.selectDevice")} />
                 </SelectTrigger>
                 <SelectContent>
                   {publishers.map((row) => (
@@ -144,7 +146,7 @@ export function SendMessageDialog({
               </Select>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <Label htmlFor="send-name">Name</Label>
+              <Label htmlFor="send-name">{t("common.name")}</Label>
               <Input
                 id="send-name"
                 value={name}
@@ -156,7 +158,7 @@ export function SendMessageDialog({
             </div>
             <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
               <div className="grid grid-cols-1 gap-2">
-                <Label htmlFor="send-value">Value</Label>
+                <Label htmlFor="send-value">{t("messages.value")}</Label>
                 <Input
                   id="send-value"
                   value={value}
@@ -167,7 +169,7 @@ export function SendMessageDialog({
                 />
               </div>
               <div className="grid grid-cols-1 gap-2">
-                <Label htmlFor="send-unit">Unit</Label>
+                <Label htmlFor="send-unit">{t("messages.unit")}</Label>
                 <Input
                   id="send-unit"
                   value={unit}
@@ -179,8 +181,7 @@ export function SendMessageDialog({
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              A number is sent as a numeric value, true/false as a boolean and
-              anything else as text.
+              {t("send.typesHint")}
             </p>
             <DialogFooter>
               <Button
@@ -189,10 +190,10 @@ export function SendMessageDialog({
                 disabled={send.isPending}
                 onClick={() => onOpenChange(false)}
               >
-                Close
+                {t("common.close")}
               </Button>
               <Button type="submit" disabled={send.isPending || !ready}>
-                {send.isPending ? "Sending…" : "Send"}
+                {send.isPending ? t("send.sending") : t("send.send")}
               </Button>
             </DialogFooter>
           </form>

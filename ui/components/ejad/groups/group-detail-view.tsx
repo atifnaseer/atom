@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   ArrowLeft,
   ChevronRight,
@@ -17,6 +16,7 @@ import { LoadProblem } from "@/components/ejad/error-alert";
 import { useGroupActions } from "@/components/ejad/groups/group-actions";
 import { GroupMembers } from "@/components/ejad/groups/group-members";
 import { useObjectGroups } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { IfAllowed } from "@/components/ejad/if-allowed";
 import { HeaderSkeleton } from "@/components/ejad/skeletons";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function GroupDetailView({
   groupId: string;
   workspaceId: string;
 }) {
+  const { t, format } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,8 +81,8 @@ export function GroupDetailView({
   const backLink = (
     <Button asChild variant="ghost" size="sm" className="w-fit px-2">
       <Link href="/device-groups">
-        <ArrowLeft />
-        Groups
+        <ArrowLeft className="rtl:rotate-180" />
+        {t("nav.groups")}
       </Link>
     </Button>
   );
@@ -103,10 +104,10 @@ export function GroupDetailView({
       <div className="grid grid-cols-1 gap-6">
         {backLink}
         <LoadProblem
-          what="group"
+          kind="group"
           error={error}
           notFound={Boolean(notHere)}
-          back={{ href: "/device-groups", label: "Back to groups" }}
+          back={{ href: "/device-groups", label: t("groups.back") }}
           onRetry={() => refetch()}
         />
       </div>
@@ -128,7 +129,7 @@ export function GroupDetailView({
         <div className="grid min-w-0 gap-1">
           {ancestors.length ? (
             <nav
-              aria-label="Parent groups"
+              aria-label={t("groups.parents")}
               className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
             >
               {ancestors.map((ancestor) => (
@@ -139,7 +140,7 @@ export function GroupDetailView({
                   >
                     {ancestor.name}
                   </Link>
-                  <ChevronRight className="size-3.5" />
+                  <ChevronRight className="size-3.5 rtl:rotate-180" />
                 </span>
               ))}
             </nav>
@@ -152,15 +153,17 @@ export function GroupDetailView({
             <p className="text-sm text-muted-foreground">{group.description}</p>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            <code className="font-mono">{group.id}</code> · created{" "}
-            {format(new Date(group.createdAt), "d MMM yyyy, HH:mm")}
+            <code className="font-mono">{group.id}</code> ·{" "}
+            {t("groups.createdAt", {
+              date: format.date(group.createdAt, "dateTime"),
+            })}
           </p>
         </div>
         <IfAllowed ability="manage">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => actions.create(group)}>
               <FolderPlus />
-              Add subgroup
+              {t("groups.addSubgroup")}
             </Button>
             <Button
               variant="outline"
@@ -168,7 +171,7 @@ export function GroupDetailView({
               onClick={() => actions.edit(group)}
             >
               <Pencil />
-              Rename
+              {t("common.rename")}
             </Button>
             <Button
               variant="outline"
@@ -176,7 +179,7 @@ export function GroupDetailView({
               onClick={() => actions.move(group)}
             >
               <FolderInput />
-              Move
+              {t("groups.move")}
             </Button>
             <Button
               variant="destructive"
@@ -184,7 +187,7 @@ export function GroupDetailView({
               onClick={() => actions.remove(group)}
             >
               <Trash2 />
-              Delete
+              {t("common.delete")}
             </Button>
           </div>
         </IfAllowed>
@@ -192,10 +195,11 @@ export function GroupDetailView({
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="devices">Devices</TabsTrigger>
-          <TabsTrigger value="channels">Channels</TabsTrigger>
+          <TabsTrigger value="devices">{t("nav.devices")}</TabsTrigger>
+          <TabsTrigger value="channels">{t("nav.channels")}</TabsTrigger>
           <TabsTrigger value="subgroups">
-            Subgroups{children.length ? ` (${children.length})` : ""}
+            {t("groups.subgroupsTab")}
+            {children.length ? ` (${format.number(children.length)})` : ""}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="devices" className="mt-4">
@@ -211,11 +215,13 @@ export function GroupDetailView({
         <TabsContent value="subgroups" className="mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2">
-              <CardTitle className="text-base">Subgroups</CardTitle>
+              <CardTitle className="text-base">
+                {t("groups.subgroupsTab")}
+              </CardTitle>
               <IfAllowed ability="manage">
                 <Button size="sm" onClick={() => actions.create(group)}>
                   <FolderPlus />
-                  Add subgroup
+                  {t("groups.addSubgroup")}
                 </Button>
               </IfAllowed>
             </CardHeader>
@@ -241,8 +247,7 @@ export function GroupDetailView({
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No subgroups. Devices and channels of subgroups are not listed
-                  here; open a subgroup to see its members.
+                  {t("groups.noSubgroups")}
                 </p>
               )}
             </CardContent>

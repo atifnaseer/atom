@@ -1,6 +1,7 @@
 "use client";
 
 import type * as React from "react";
+import { useT } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <AlertDialog
       open={open}
@@ -45,7 +47,9 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>
+            {t("common.cancel")}
+          </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             disabled={pending}

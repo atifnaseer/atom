@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/ejad/i18n-provider";
 
 function Dialog({
   ...props
@@ -54,6 +55,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
 }) {
+  const t = useT();
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -70,11 +72,11 @@ function DialogContent({
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
+              className="absolute top-2 end-2"
               size="icon-sm"
             >
               <XIcon />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{t("common.close")}</span>
             </Button>
           </DialogPrimitive.Close>
         )}

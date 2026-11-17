@@ -4,16 +4,20 @@ import Link from "next/link";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { WorkspaceOverview } from "@/components/ejad/home/workspace-overview";
+import { EnglishOnly } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
 import { RelationshipPanel } from "@/components/relationships/relationship-panel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getServerSession } from "@/lib/auth/session";
-import { BRAND_SHORT } from "@/lib/brand";
 import { loadAccess } from "@/lib/ejad/access-server";
+import { getI18n } from "@/lib/ejad/i18n/server";
 import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 
-export const metadata: Metadata = { title: "Home" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("page.home.title") };
+}
 export const dynamic = "force-dynamic";
 
 /** Whether the signed-in user may see Atom's platform-wide panels. */
@@ -32,12 +36,13 @@ export default async function HomePage() {
     getServerWorkspaceId(),
     isPlatformAdmin(),
   ]);
+  const { t } = await getI18n();
   return (
     <div className="grid gap-6">
       <PageHeader
         icon={House}
-        title="Home"
-        description={`What is happening in your ${BRAND_SHORT} workspace: devices, channels and the latest readings.`}
+        title={t("page.home.title")}
+        description={t("page.home.description")}
       />
       {workspaceId ? (
         <WorkspaceOverview key={workspaceId} workspaceId={workspaceId} />
@@ -45,24 +50,27 @@ export default async function HomePage() {
         <Card>
           <EmptyState
             icon={Building2}
-            title="Pick a workspace"
-            description="A workspace holds one project’s devices, channels and people. Choose one in the Workspace switcher in the sidebar, or open the list of workspaces."
+            title={t("home.pickWorkspace")}
+            description={t("home.pickWorkspaceHint")}
             action={
               <Button asChild>
-                <Link href="/workspaces">Go to workspaces</Link>
+                <Link href="/workspaces">{t("noWorkspace.action")}</Link>
               </Button>
             }
           />
         </Card>
       )}
       {platformAdmin ? (
-        <section aria-label="Platform" className="grid gap-4">
+        <section aria-label={t("home.platform")} className="grid gap-4">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <Shield className="size-5 text-primary" />
-            Platform
+            {t("home.platform")}
           </h2>
-          <DashboardOverview />
-          <RelationshipPanel />
+          {/* Atom's own panels are English only. */}
+          <EnglishOnly>
+            <DashboardOverview />
+            <RelationshipPanel />
+          </EnglishOnly>
         </section>
       ) : null}
     </div>

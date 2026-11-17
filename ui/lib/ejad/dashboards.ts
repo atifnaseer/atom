@@ -5,6 +5,7 @@
 // Widgets read channel data through /api/ejad/messages (the Magistrala
 // message reader). Reader times are Unix nanoseconds; see messages.ts.
 
+import { formatNumber, type Locale, pageLocale } from "@/lib/ejad/i18n/core";
 import {
   type AGGREGATION_INTERVALS,
   isUuid,
@@ -313,11 +314,14 @@ export function gaugeFraction(value: number, min: number, max: number) {
 }
 
 /** A number for display: at most 2 decimals, no trailing zeros. */
-export function formatReading(value: number): string {
+export function formatReading(
+  value: number,
+  locale: Locale = pageLocale(),
+): string {
   if (!Number.isFinite(value)) return "—";
   const abs = Math.abs(value);
   const digits = abs >= 1000 ? 0 : abs >= 100 ? 1 : 2;
-  return value.toLocaleString(undefined, { maximumFractionDigits: digits });
+  return formatNumber(locale, value, { maximumFractionDigits: digits });
 }
 
 function msToNanos(ms: number): string {

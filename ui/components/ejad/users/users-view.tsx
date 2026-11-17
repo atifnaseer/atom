@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   CircleOff,
   CirclePlay,
@@ -14,11 +13,12 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/crud/status-badge";
 import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
 import { requestJson } from "@/components/ejad/request-json";
 import { TableSkeleton } from "@/components/ejad/skeletons";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import { useAccess } from "@/components/ejad/use-access";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -71,6 +71,7 @@ const USERS_QUERY_KEY = "ejad-users";
 type Confirm = { user: PlatformUser; action: "disable" | "delete" };
 
 export function UsersView() {
+  const { t, format, localize } = useI18n();
   const access = useAccess();
   const queryClient = useQueryClient();
   const [creating, setCreating] = React.useState(false);
@@ -104,11 +105,14 @@ export function UsersView() {
           }),
     onSuccess: (_, { user, action }) => {
       toast.success(
-        action === "delete"
-          ? `Deleted “${user.name}”`
-          : action === "disable"
-            ? `Disabled “${user.name}”`
-            : `Enabled “${user.name}”`,
+        t(
+          action === "delete"
+            ? "users.deleted"
+            : action === "disable"
+              ? "users.disabled"
+              : "users.enabled",
+          { name: user.name },
+        ),
       );
       setConfirm(null);
       refresh();
@@ -122,13 +126,13 @@ export function UsersView() {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={UserRound}
-        title="Users"
-        description="Accounts that can sign in. Add them to workspaces on each workspace’s Members page."
+        title={t("page.users.title")}
+        description={t("page.users.description")}
         actions={
           access.platformAdmin ? (
             <Button onClick={() => setCreating(true)}>
               <UserPlus />
-              Create user
+              {t("users.create")}
             </Button>
           ) : null
         }
@@ -139,14 +143,12 @@ export function UsersView() {
       ) : !access.platformAdmin ? (
         <Alert>
           <ShieldCheck />
-          <AlertTitle>{PLATFORM_ADMIN_DENIED}</AlertTitle>
-          <AlertDescription>
-            Ask a platform admin to create or change user accounts.
-          </AlertDescription>
+          <AlertTitle>{localize(PLATFORM_ADMIN_DENIED)}</AlertTitle>
+          <AlertDescription>{t("users.askAdmin")}</AlertDescription>
         </Alert>
       ) : error ? (
         <ErrorAlert
-          title="Could not load users"
+          title={t("users.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -157,11 +159,11 @@ export function UsersView() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>{t("members.user")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead>{t("common.created")}</TableHead>
                 <TableHead className="w-12">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("common.actions")}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -181,16 +183,16 @@ export function UsersView() {
                             {self ? (
                               <Badge
                                 variant="secondary"
-                                className="ml-2 text-[0.68rem]"
+                                className="ms-2 text-[0.68rem]"
                               >
-                                You
+                                {t("members.you")}
                               </Badge>
                             ) : user.system ? (
                               <Badge
                                 variant="outline"
-                                className="ml-2 text-[0.68rem]"
+                                className="ms-2 text-[0.68rem]"
                               >
-                                Built-in
+                                {t("users.builtIn")}
                               </Badge>
                             ) : null}
                           </span>
@@ -206,16 +208,18 @@ export function UsersView() {
                       <StatusBadge value={user.status} />
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-muted-foreground">
-                      {format(new Date(user.createdAt), "d MMM yyyy")}
+                      {format.date(user.createdAt)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="size-8"
-                            aria-label={`Actions for ${user.name}`}
+                            aria-label={t("common.actionsFor", {
+                              name: user.name,
+                            })}
                           >
                             <MoreVertical />
                           </Button>
@@ -223,7 +227,7 @@ export function UsersView() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onSelect={() => setResetting(user)}>
                             <KeyRound />
-                            Reset password
+                            {t("users.resetPassword")}
                           </DropdownMenuItem>
                           {active ? (
                             <DropdownMenuItem
@@ -233,7 +237,7 @@ export function UsersView() {
                               }
                             >
                               <CircleOff />
-                              Disable
+                              {t("common.disable")}
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
@@ -242,7 +246,7 @@ export function UsersView() {
                               }
                             >
                               <CirclePlay />
-                              Enable
+                              {t("common.enable")}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
@@ -254,7 +258,7 @@ export function UsersView() {
                             }
                           >
                             <Trash2 />
-                            Delete
+                            {t("common.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -287,18 +291,22 @@ export function UsersView() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm?.action === "delete" ? "Delete" : "Disable"} “
-              {confirm?.user.name}”?
+              {t(
+                confirm?.action === "delete"
+                  ? "users.deleteTitle"
+                  : "users.disableTitle",
+                { name: confirm?.user.name ?? "" },
+              )}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.action === "delete"
-                ? "The account is deleted, its passwords and sessions are revoked, and it loses access to every workspace."
-                : "The user can no longer sign in until the account is enabled again. Their workspace memberships are kept."}
+                ? t("users.deleteHint")
+                : t("users.disableHint")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={act.isPending}>
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
@@ -309,10 +317,10 @@ export function UsersView() {
               }}
             >
               {act.isPending
-                ? "Working…"
+                ? t("common.working")
                 : confirm?.action === "delete"
-                  ? "Delete"
-                  : "Disable"}
+                  ? t("common.delete")
+                  : t("common.disable")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -330,6 +338,7 @@ function CreateUserDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 }) {
+  const { t, localize } = useI18n();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -349,7 +358,7 @@ function CreateUserDialog({
         body: { name, email: email || null, password },
       }),
     onSuccess: ({ user }) => {
-      toast.success(`User “${user.name}” created`);
+      toast.success(t("users.created", { name: user.name }));
       onOpenChange(false);
       onCreated();
     },
@@ -366,11 +375,8 @@ function CreateUserDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create user</DialogTitle>
-          <DialogDescription>
-            The user signs in with the username (or email) and this password,
-            and can create workspaces of their own.
-          </DialogDescription>
+          <DialogTitle>{t("users.create")}</DialogTitle>
+          <DialogDescription>{t("users.createHint")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid grid-cols-1 gap-4"
@@ -380,7 +386,7 @@ function CreateUserDialog({
           }}
         >
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="user-name">Username</Label>
+            <Label htmlFor="user-name">{t("users.username")}</Label>
             <Input
               id="user-name"
               autoComplete="off"
@@ -390,7 +396,7 @@ function CreateUserDialog({
             />
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="user-email">Email (optional)</Label>
+            <Label htmlFor="user-email">{t("users.emailOptional")}</Label>
             <Input
               id="user-email"
               type="email"
@@ -400,7 +406,7 @@ function CreateUserDialog({
             />
           </div>
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="user-password">Password</Label>
+            <Label htmlFor="user-password">{t("auth.password")}</Label>
             <PasswordInput
               id="user-password"
               autoComplete="new-password"
@@ -411,7 +417,9 @@ function CreateUserDialog({
             <p
               className={`text-xs ${passwordError ? "text-destructive" : "text-muted-foreground"}`}
             >
-              {passwordError ?? `At least ${MIN_PASSWORD_LENGTH} characters.`}
+              {passwordError
+                ? localize(passwordError)
+                : t("users.minLength", { count: MIN_PASSWORD_LENGTH })}
             </p>
           </div>
           <DialogFooter>
@@ -421,7 +429,7 @@ function CreateUserDialog({
               disabled={create.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
@@ -432,7 +440,7 @@ function CreateUserDialog({
                 create.isPending
               }
             >
-              {create.isPending ? "Creating…" : "Create user"}
+              {create.isPending ? t("common.creating") : t("users.create")}
             </Button>
           </DialogFooter>
         </form>
@@ -448,6 +456,7 @@ function ResetPasswordDialog({
   user: PlatformUser | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t, localize } = useI18n();
   const [password, setPassword] = React.useState("");
   React.useEffect(() => {
     if (user) setPassword("");
@@ -460,7 +469,7 @@ function ResetPasswordDialog({
         body: { action: "reset-password", password },
       }),
     onSuccess: () => {
-      toast.success(`Password of “${user?.name}” reset`);
+      toast.success(t("users.passwordReset", { name: user?.name ?? "" }));
       onOpenChange(false);
     },
     onError: (err) => toastError(err),
@@ -476,11 +485,10 @@ function ResetPasswordDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reset password of “{user?.name}”</DialogTitle>
-          <DialogDescription>
-            The new password replaces every existing one. Share it with the user
-            over a safe channel.
-          </DialogDescription>
+          <DialogTitle>
+            {t("users.resetTitle", { name: user?.name ?? "" })}
+          </DialogTitle>
+          <DialogDescription>{t("users.resetHint")}</DialogDescription>
         </DialogHeader>
         <form
           className="grid grid-cols-1 gap-4"
@@ -490,7 +498,7 @@ function ResetPasswordDialog({
           }}
         >
           <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="reset-password">New password</Label>
+            <Label htmlFor="reset-password">{t("users.newPassword")}</Label>
             <PasswordInput
               id="reset-password"
               autoComplete="new-password"
@@ -501,7 +509,9 @@ function ResetPasswordDialog({
             <p
               className={`text-xs ${passwordError ? "text-destructive" : "text-muted-foreground"}`}
             >
-              {passwordError ?? `At least ${MIN_PASSWORD_LENGTH} characters.`}
+              {passwordError
+                ? localize(passwordError)
+                : t("users.minLength", { count: MIN_PASSWORD_LENGTH })}
             </p>
           </div>
           <DialogFooter>
@@ -511,13 +521,13 @@ function ResetPasswordDialog({
               disabled={reset.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="submit"
               disabled={!password || Boolean(passwordError) || reset.isPending}
             >
-              {reset.isPending ? "Saving…" : "Reset password"}
+              {reset.isPending ? t("common.saving") : t("users.resetPassword")}
             </Button>
           </DialogFooter>
         </form>

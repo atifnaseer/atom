@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { postDevice } from "@/components/ejad/devices/post-device";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ export function DeviceCreateDialog({
 }: {
   onCreated: (result: CreateDeviceResult) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [tagItems, setTagItems] = React.useState<Tag[]>([]);
   const form = useForm<Values>({
@@ -82,11 +84,9 @@ export function DeviceCreateDialog({
         metadata: parseMetadata(values.metadata),
       }),
     onSuccess: (result) => {
-      toast.success(`Device “${result.device.name}” created`);
+      toast.success(t("devices.created", { name: result.device.name }));
       if (result.keyError) {
-        toast.warning(
-          `The device was created but its secret was not: ${result.keyError}. Add one from the Credentials tab.`,
-        );
+        toast.warning(t("devices.keyFailed", { error: result.keyError }));
       }
       onOpenChange(false);
       onCreated(result);
@@ -94,7 +94,7 @@ export function DeviceCreateDialog({
     onError: (error: Error & { code?: string }) => {
       if (error.code === "CONFLICT") {
         form.setError("externalId", {
-          message: "Another device in this workspace already uses this ID.",
+          message: t("devices.externalIdTaken"),
         });
         return;
       }
@@ -116,16 +116,13 @@ export function DeviceCreateDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus />
-          Create device
+          {t("devices.create")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create device</DialogTitle>
-          <DialogDescription>
-            A secret is generated for the device. You will see it once, right
-            after the device is created.
-          </DialogDescription>
+          <DialogTitle>{t("devices.create")}</DialogTitle>
+          <DialogDescription>{t("devices.createHint")}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -137,7 +134,9 @@ export function DeviceCreateDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Name</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("common.name")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -154,18 +153,18 @@ export function DeviceCreateDialog({
               name="externalId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>External ID</FormLabel>
+                  <FormLabel>{t("devices.externalId")}</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      className="font-mono"
-                      placeholder="Serial number or MAC address"
+                      className="font-mono placeholder:font-sans"
+                      placeholder={t("devices.externalIdPlaceholder")}
                       autoComplete="off"
                       spellCheck={false}
                     />
                   </FormControl>
                   <FormDescription>
-                    Optional. Must be unique in this workspace.
+                    {t("devices.externalIdHint")}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -177,9 +176,9 @@ export function DeviceCreateDialog({
               render={({ field }) => (
                 <TagsFormInput
                   field={field}
-                  label="Tags"
+                  label={t("workspaces.tags")}
                   newTags={tagItems}
-                  placeholder="Type a tag and press Enter"
+                  placeholder={t("workspaces.tagsPlaceholder")}
                   setTags={setTagItems}
                 />
               )}
@@ -189,7 +188,7 @@ export function DeviceCreateDialog({
               name="metadata"
               render={({ field }) => (
                 <FormItem className="min-w-0">
-                  <FormLabel>Metadata</FormLabel>
+                  <FormLabel>{t("workspaces.metadata")}</FormLabel>
                   <FormControl>
                     <JsonEditor
                       className="[&_.cm-editor]:min-h-24"
@@ -197,7 +196,9 @@ export function DeviceCreateDialog({
                       value={field.value}
                     />
                   </FormControl>
-                  <FormDescription>A JSON object.</FormDescription>
+                  <FormDescription>
+                    {t("workspaces.metadataHint")}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -208,10 +209,10 @@ export function DeviceCreateDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? "Creating…" : "Create device"}
+                {create.isPending ? t("common.creating") : t("devices.create")}
               </Button>
             </DialogFooter>
           </form>

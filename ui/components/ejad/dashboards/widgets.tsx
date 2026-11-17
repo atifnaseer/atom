@@ -1,6 +1,5 @@
 "use client";
 
-import { format } from "date-fns";
 import {
   CircleAlert,
   CircleCheck,
@@ -16,6 +15,7 @@ import {
   useLatestMessages,
   useSeries,
 } from "@/components/ejad/dashboards/use-widget-data";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import {
   type ChartConfig,
   ChartContainer,
@@ -37,6 +37,8 @@ import {
   type ValueWidget,
 } from "@/lib/ejad/dashboards";
 import { errorText } from "@/lib/ejad/errors";
+import { formatDate, pageLocale } from "@/lib/ejad/i18n/core";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 import {
   messageDate,
   messageValue,
@@ -53,18 +55,20 @@ function Problem({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NoData({ what = "No stored messages yet." }: { what?: string }) {
-  return <Problem>{what}</Problem>;
+function NoData({ what }: { what?: string }) {
+  const { t } = useI18n();
+  return <Problem>{what ?? t("widget.noData")}</Problem>;
 }
 
 function timeLabel(message: ReaderMessage | undefined) {
   const date = messageDate(message?.time);
-  return date ? format(date, "PP HH:mm:ss") : null;
+  return date ? formatDate(pageLocale(), date, "dateTimeSeconds") : null;
 }
 
 // --- Line chart --------------------------------------------------------------
 
 export function LineChartWidget({ widget }: { widget: LineWidget }) {
+  const { t, localize, format } = useI18n();
   const { data, error, isPending } = useSeries(widget);
   if (isPending) return <Skeleton className="h-full w-full" />;
   if (error) return <Problem>{errorText(error)}</Problem>;
@@ -72,7 +76,9 @@ export function LineChartWidget({ widget }: { widget: LineWidget }) {
   if (rows.length === 0)
     return (
       <NoData
-        what={`No values in the ${TIME_RANGE_SPECS[widget.range].label.toLowerCase()}.`}
+        what={t("widget.noValues", {
+          range: localize(TIME_RANGE_SPECS[widget.range].label),
+        })}
       />
     );
 
@@ -85,7 +91,8 @@ export function LineChartWidget({ widget }: { widget: LineWidget }) {
   const spec = TIME_RANGE_SPECS[widget.range];
   const now = data?.now ?? Date.now();
   const longRange = spec.ms > 24 * 3_600_000;
-  const tickFormat = (t: number) => format(t, longRange ? "MMM d" : "HH:mm");
+  const tickFormat = (time: number) =>
+    format.date(time, longRange ? "dayMonth" : "time");
 
   return (
     <ChartContainer config={config} className="aspect-auto h-full w-full">
@@ -112,9 +119,9 @@ export function LineChartWidget({ widget }: { widget: LineWidget }) {
           content={
             <ChartTooltipContent
               labelFormatter={(_, payload) => {
-                const t = payload?.[0]?.payload?.t;
-                return typeof t === "number"
-                  ? format(t, longRange ? "PP HH:mm" : "HH:mm:ss")
+                const time = payload?.[0]?.payload?.t;
+                return typeof time === "number"
+                  ? format.date(time, longRange ? "dateTime" : "timeSeconds")
                   : "";
               }}
             />
@@ -152,11 +159,12 @@ const STATUS_ICONS: Record<ThresholdColor, React.ElementType> = {
 };
 
 export function StatusLabel({ color }: { color: ThresholdColor }) {
+  const { localize } = useI18n();
   const Icon = STATUS_ICONS[color];
   return (
     <span className="inline-flex items-center gap-1.5 text-sm font-medium">
       <Icon className="size-4" style={{ color: STATUS_COLORS[color] }} />
-      {STATUS_LABELS[color]}
+      {localize(STATUS_LABELS[color])}
     </span>
   );
 }
@@ -178,7 +186,7 @@ export function ValueWidgetView({ widget }: { widget: ValueWidget }) {
   const unit = widget.unit || message.unit || "";
   return (
     <div
-      className="flex h-full flex-col justify-center gap-2 border-l-4 pl-4"
+      className="flex h-full flex-col justify-center gap-2 border-s-4 ps-4"
       style={{
         borderColor: color ? STATUS_COLORS[color] : "var(--border)",
       }}
@@ -204,6 +212,7 @@ const ARC_LENGTH = Math.PI * ARC_RADIUS;
 const ARC_PATH = `M 10 90 A ${ARC_RADIUS} ${ARC_RADIUS} 0 0 1 170 90`;
 
 export function GaugeWidgetView({ widget }: { widget: GaugeWidget }) {
+  const { t } = useI18n();
   const { data, error, isPending } = useLatestMessages(
     widget.channelId,
     widget.name,
@@ -214,18 +223,26 @@ export function GaugeWidgetView({ widget }: { widget: GaugeWidget }) {
   const message = data?.messages[0];
   if (!message) return <NoData />;
   if (typeof message.value !== "number")
-    return <Problem>The latest “{widget.name}” is not a number.</Problem>;
+    return <Problem>{t("widget.notNumber", { name: widget.name })}</Problem>;
 
   const fraction = gaugeFraction(message.value, widget.min, widget.max);
   const unit = widget.unit || message.unit || "";
   const outside = message.value < widget.min || message.value > widget.max;
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1">
+    <div
+      dir="ltr"
+      className="flex h-full flex-col items-center justify-center gap-1"
+    >
       <svg
         viewBox="0 0 180 100"
         className="w-full max-w-64"
         role="img"
-        aria-label={`${formatReading(message.value)} ${unit} on a scale from ${widget.min} to ${widget.max}`}
+        aria-label={t("widget.gaugeAria", {
+          value: formatReading(message.value),
+          unit,
+          min: formatReading(widget.min),
+          max: formatReading(widget.max),
+        })}
       >
         <path
           d={ARC_PATH}
@@ -264,8 +281,8 @@ export function GaugeWidgetView({ widget }: { widget: GaugeWidget }) {
         <span>{formatReading(widget.min)}</span>
         <span>{formatReading(widget.max)}</span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        {outside ? "Outside the scale · " : ""}
+      <p className="text-xs text-muted-foreground" dir="auto">
+        {outside ? `${t("widget.outside")} · ` : ""}
         {timeLabel(message)}
       </p>
     </div>
@@ -275,6 +292,7 @@ export function GaugeWidgetView({ widget }: { widget: GaugeWidget }) {
 // --- Table -------------------------------------------------------------------
 
 export function TableWidgetView({ widget }: { widget: TableWidget }) {
+  const { t, format } = useI18n();
   const { data, error, isPending } = useLatestMessages(
     widget.channelId,
     widget.name,
@@ -287,12 +305,14 @@ export function TableWidgetView({ widget }: { widget: TableWidget }) {
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
+        <thead className="sticky top-0 bg-card text-start text-xs text-muted-foreground">
           <tr>
-            <th className="py-1 pr-3 font-medium">Time</th>
-            <th className="py-1 pr-3 font-medium">Name</th>
-            <th className="py-1 pr-3 text-right font-medium">Value</th>
-            <th className="py-1 font-medium">Unit</th>
+            <th className="py-1 pe-3 font-medium">{t("messages.time")}</th>
+            <th className="py-1 pe-3 font-medium">{t("common.name")}</th>
+            <th className="py-1 pe-3 text-end font-medium">
+              {t("messages.value")}
+            </th>
+            <th className="py-1 font-medium">{t("messages.unit")}</th>
           </tr>
         </thead>
         <tbody>
@@ -304,13 +324,13 @@ export function TableWidgetView({ widget }: { widget: TableWidget }) {
                 key={`${message.time}-${message.name}-${index}`}
                 className="border-t"
               >
-                <td className="py-1 pr-3 whitespace-nowrap text-muted-foreground tabular-nums">
-                  {date ? format(date, "HH:mm:ss") : "—"}
+                <td className="py-1 pe-3 whitespace-nowrap text-muted-foreground tabular-nums">
+                  {date ? format.date(date, "timeSeconds") : "—"}
                 </td>
-                <td className="max-w-40 truncate py-1 pr-3">
+                <td className="max-w-40 truncate py-1 pe-3">
                   {message.name || "—"}
                 </td>
-                <td className="py-1 pr-3 text-right tabular-nums">
+                <td className="py-1 pe-3 text-end tabular-nums">
                   {typeof message.value === "number"
                     ? formatReading(message.value)
                     : messageValue(message)}
@@ -331,25 +351,25 @@ export function TableWidgetView({ widget }: { widget: TableWidget }) {
 
 const DEVICE_STATES: {
   key: keyof DeviceStatusCounts;
-  label: string;
+  label: MessageKey;
   icon: React.ElementType;
   color: string;
 }[] = [
   {
     key: "active",
-    label: "Active",
+    label: "status.active",
     icon: CircleCheck,
     color: STATUS_COLORS.good,
   },
   {
     key: "inactive",
-    label: "Inactive",
+    label: "status.inactive",
     icon: CircleMinus,
     color: "var(--muted-foreground)",
   },
   {
     key: "suspended",
-    label: "Suspended",
+    label: "status.suspended",
     icon: TriangleAlert,
     color: STATUS_COLORS.warning,
   },
@@ -360,6 +380,7 @@ export function DeviceStatusWidgetView({
 }: {
   workspaceId: string;
 }) {
+  const { t, format } = useI18n();
   const { data, error, isPending } = useDeviceStatusCounts(workspaceId);
   if (isPending) return <Skeleton className="h-full w-full" />;
   if (error) return <Problem>{errorText(error)}</Problem>;
@@ -368,9 +389,11 @@ export function DeviceStatusWidgetView({
   return (
     <div className="flex h-full flex-col justify-center gap-3">
       <p className="flex items-baseline gap-2">
-        <span className="text-4xl font-semibold tabular-nums">{total}</span>
+        <span className="text-4xl font-semibold tabular-nums">
+          {format.number(total)}
+        </span>
         <span className="text-sm text-muted-foreground">
-          device{total === 1 ? "" : "s"}
+          {t("widget.devicesWord", { count: total })}
         </span>
       </p>
       <ul className="grid gap-1.5">
@@ -384,10 +407,10 @@ export function DeviceStatusWidgetView({
           >
             <span className="inline-flex items-center gap-1.5">
               <state.icon className="size-4" style={{ color: state.color }} />
-              {state.label}
+              <span className="capitalize">{t(state.label)}</span>
             </span>
             <span className="font-medium tabular-nums">
-              {counts[state.key]}
+              {format.number(counts[state.key])}
             </span>
           </li>
         ))}

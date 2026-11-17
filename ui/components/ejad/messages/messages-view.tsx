@@ -8,6 +8,7 @@ import * as React from "react";
 import { useWorkspaceRoute } from "@/components/ejad/channels/use-workspace-route";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { LoadProblem } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { ChannelMessages } from "@/components/ejad/messages/channel-messages";
 import { PageHeader } from "@/components/ejad/page-header";
 import { AsyncCombobox, type ComboPage } from "@/components/ui/async-combobox";
@@ -36,6 +37,7 @@ export function MessagesView({
   workspaceId: string;
   endpoints: MessagingEndpoints;
 }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -123,11 +125,11 @@ export function MessagesView({
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={MessageSquare}
-        title="Messages"
-        description="Browse messages published on this workspace’s channels."
+        title={t("page.messages.title")}
+        description={t("page.messages.description")}
         actions={
           <div className="grid w-full gap-1.5 sm:w-80">
-            <Label htmlFor="messages-channel">Channel</Label>
+            <Label htmlFor="messages-channel">{t("page.channel.title")}</Label>
             <AsyncCombobox
               id="messages-channel"
               value={channelId}
@@ -135,9 +137,9 @@ export function MessagesView({
               queryKey={["ejad-messages-channels", workspaceId]}
               fetchPage={fetchPage}
               fetchSelected={fetchSelected}
-              placeholder="Select a channel"
-              searchPlaceholder="Search channels…"
-              emptyText="No channels found."
+              placeholder={t("connections.selectChannel")}
+              searchPlaceholder={t("connections.searchChannels")}
+              emptyText={t("connections.noChannels")}
             />
           </div>
         }
@@ -147,11 +149,11 @@ export function MessagesView({
         <Card>
           <EmptyState
             icon={MessageSquare}
-            title="Pick a channel"
-            description="Choose a channel above to see the messages devices published on it. Messages are kept only for channels with “Store messages” turned on."
+            title={t("messages.pickChannel")}
+            description={t("messages.pickChannelHint")}
             action={
               <Button asChild variant="outline">
-                <Link href="/channels">Go to channels</Link>
+                <Link href="/channels">{t("messages.goToChannels")}</Link>
               </Button>
             }
           />
@@ -160,10 +162,10 @@ export function MessagesView({
         <Skeleton className="h-64 rounded-xl" />
       ) : error || !channel || notHere ? (
         <LoadProblem
-          what="channel"
+          kind="channel"
           error={error}
           notFound={Boolean(notHere)}
-          back={{ href: "/channels", label: "Back to channels" }}
+          back={{ href: "/channels", label: t("channels.back") }}
           onRetry={() => refetch()}
         />
       ) : (

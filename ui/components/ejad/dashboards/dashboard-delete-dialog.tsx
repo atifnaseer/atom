@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useT } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ export function DashboardDeleteDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: (dashboard: Dashboard) => void;
 }) {
+  const t = useT();
   const remove = useMutation({
     mutationFn: async (target: Dashboard) => {
       await graphqlClient({
@@ -39,7 +41,7 @@ export function DashboardDeleteDialog({
       return target;
     },
     onSuccess: (target) => {
-      toast.success(`Dashboard “${dashboardName(target)}” deleted`);
+      toast.success(t("dashboards.deleted", { name: dashboardName(target) }));
       onDeleted(target);
     },
     onError: (error) => toastError(error),
@@ -55,16 +57,17 @@ export function DashboardDeleteDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Delete dashboard “{dashboard ? dashboardName(dashboard) : ""}”?
+            {t("dashboards.deleteTitle", {
+              name: dashboard ? dashboardName(dashboard) : "",
+            })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Its widgets are removed. Channels and their stored messages are not
-            affected.
+            {t("dashboards.deleteHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={remove.isPending}>
-            Cancel
+            {t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -74,7 +77,7 @@ export function DashboardDeleteDialog({
               if (dashboard) remove.mutate(dashboard);
             }}
           >
-            {remove.isPending ? "Deleting…" : "Delete dashboard"}
+            {remove.isPending ? t("common.deleting") : t("dashboards.delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

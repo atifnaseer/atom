@@ -12,6 +12,7 @@ import {
 } from "react-hook-form";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/ejad/i18n-provider";
 
 const Form = FormProvider;
 
@@ -128,7 +129,9 @@ function FormMessage({
   ...props
 }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
-  const body = error ? String(error?.message) : children;
+  // Validation sentences listed in lib/ejad/i18n/messages.ts are translated.
+  const { localize } = useI18n();
+  const body = error ? localize(String(error?.message)) : children;
 
   if (!body) return null;
 

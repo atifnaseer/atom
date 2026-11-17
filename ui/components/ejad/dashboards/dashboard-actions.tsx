@@ -7,6 +7,7 @@ import {
   DashboardNameDialog,
   type DashboardNameTarget,
 } from "@/components/ejad/dashboards/dashboard-name-dialog";
+import { useT } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -78,6 +79,7 @@ export function DashboardActionsMenu({
   actions: ReturnType<typeof useDashboardActions>;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -86,7 +88,9 @@ export function DashboardActionsMenu({
           size="icon"
           className="size-8"
           disabled={disabled}
-          aria-label={`Actions for ${dashboardName(dashboard)}`}
+          aria-label={t("common.actionsFor", {
+            name: dashboardName(dashboard),
+          })}
         >
           <MoreVertical />
         </Button>
@@ -94,11 +98,11 @@ export function DashboardActionsMenu({
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={() => actions.rename(dashboard)}>
           <Pencil />
-          Rename
+          {t("common.rename")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => actions.duplicate(dashboard)}>
           <Copy />
-          Duplicate
+          {t("dashboards.duplicate")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -106,7 +110,7 @@ export function DashboardActionsMenu({
           onSelect={() => actions.remove(dashboard)}
         >
           <Trash2 />
-          Delete
+          {t("common.delete")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

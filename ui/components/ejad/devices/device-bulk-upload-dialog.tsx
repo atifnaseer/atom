@@ -11,6 +11,7 @@ import {
 import * as React from "react";
 import { CopyButton } from "@/components/ejad/copy-button";
 import { postDevice } from "@/components/ejad/devices/post-device";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +40,8 @@ import {
   bulkResultsCsv,
   parseBulkDevicesCsv,
 } from "@/lib/ejad/devices";
+import { errorText } from "@/lib/ejad/errors";
+import { pageLocale, translate } from "@/lib/ejad/i18n/core";
 
 const CONCURRENCY = 4;
 
@@ -72,7 +75,9 @@ async function uploadRows(
           deviceId: created.device.id,
           key: created.sharedKey?.key ?? null,
           error: created.keyError
-            ? `Secret not created: ${created.keyError}`
+            ? translate(pageLocale(), "bulk.keyFailed", {
+                error: created.keyError,
+              })
             : null,
         };
       } catch (error) {
@@ -81,7 +86,7 @@ async function uploadRows(
           name: row.name,
           deviceId: null,
           key: null,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorText(error),
         };
       }
       done += 1;
@@ -99,6 +104,7 @@ export function DeviceBulkUploadDialog({
 }: {
   onFinished: () => void;
 }) {
+  const { t, localize } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [stage, setStage] = React.useState<Stage>({
     kind: "pick",
@@ -114,13 +120,7 @@ export function DeviceBulkUploadDialog({
 
   function onOpenChange(next: boolean) {
     if (running) return;
-    if (
-      !next &&
-      unsavedKeys &&
-      !window.confirm(
-        "The generated secrets are shown only once and you have not downloaded them. Close anyway?",
-      )
-    ) {
+    if (!next && unsavedKeys && !window.confirm(t("bulk.closeConfirm"))) {
       return;
     }
     setOpen(next);
@@ -175,17 +175,18 @@ export function DeviceBulkUploadDialog({
       <DialogTrigger asChild>
         <Button variant="outline">
           <FileUp />
-          Bulk upload
+          {t("bulk.button")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Bulk upload devices</DialogTitle>
+          <DialogTitle>{t("bulk.title")}</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with the headers{" "}
-            <code className="font-mono">{BULK_CSV_HEADERS.join(", ")}</code>.
-            Leave Secret blank to generate one. Separate tags with commas or
-            semicolons; Metadata is a JSON object.
+            {t("bulk.headers")}{" "}
+            <code className="font-mono" dir="ltr">
+              {BULK_CSV_HEADERS.join(", ")}
+            </code>
+            . {t("bulk.hint")}
           </DialogDescription>
         </DialogHeader>
 
@@ -205,16 +206,16 @@ export function DeviceBulkUploadDialog({
               className="grid place-items-center gap-2 rounded-xl border border-dashed p-8 text-center transition-colors hover:bg-muted/40"
             >
               <Upload className="size-6 text-muted-foreground" />
-              <span className="font-medium">Choose a CSV file</span>
+              <span className="font-medium">{t("bulk.choose")}</span>
               <span className="text-sm text-muted-foreground">
-                Up to 1000 devices per file.
+                {t("bulk.limit", { count: 1000 })}
               </span>
             </button>
             {stage.error ? (
               <Alert variant="destructive">
                 <CircleX />
-                <AlertTitle>Could not read the file</AlertTitle>
-                <AlertDescription>{stage.error}</AlertDescription>
+                <AlertTitle>{t("bulk.readFailed")}</AlertTitle>
+                <AlertDescription>{localize(stage.error)}</AlertDescription>
               </Alert>
             ) : null}
             <div>
@@ -227,7 +228,7 @@ export function DeviceBulkUploadDialog({
                 }
               >
                 <Download />
-                Download a template
+                {t("bulk.template")}
               </Button>
             </div>
           </div>
@@ -245,7 +246,7 @@ export function DeviceBulkUploadDialog({
         {stage.kind === "running" ? (
           <div className="grid gap-3 py-4">
             <p className="text-sm">
-              Creating devices… {stage.done} of {stage.total}
+              {t("bulk.progress", { done: stage.done, total: stage.total })}
             </p>
             <div className="h-2 overflow-hidden rounded-full bg-muted">
               <div
@@ -256,7 +257,7 @@ export function DeviceBulkUploadDialog({
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Keep this dialog open until it finishes.
+              {t("bulk.keepOpen")}
             </p>
           </div>
         ) : null}
@@ -284,24 +285,30 @@ function ReviewStage({
   onBack: () => void;
   onStart: () => void;
 }) {
+  const { t, localize } = useI18n();
   const invalid = rows.filter((row) => row.error);
   const validCount = rows.length - invalid.length;
   return (
     <div className="grid min-w-0 gap-4">
       <p className="text-sm">
-        <span className="font-medium">{fileName}</span>: {rows.length} rows,{" "}
-        {validCount} ready to create
-        {invalid.length > 0 ? `, ${invalid.length} with errors` : ""}.
+        <span className="font-medium">{fileName}</span>:{" "}
+        {t("table.rows", { count: rows.length })}
+        {t("common.comma")}
+        {t("bulk.ready", { count: validCount })}
+        {invalid.length > 0
+          ? `${t("common.comma")}${t("bulk.withErrors", { count: invalid.length })}`
+          : ""}
+        .
       </p>
       <div className="max-h-72 overflow-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Line</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Secret</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Check</TableHead>
+              <TableHead className="w-16">{t("bulk.line")}</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("bulk.secret")}</TableHead>
+              <TableHead>{t("workspaces.tags")}</TableHead>
+              <TableHead>{t("bulk.check")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -312,16 +319,20 @@ function ReviewStage({
                 </TableCell>
                 <TableCell className="font-medium">{row.name || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {row.secret ? "Provided" : "Generate"}
+                  {row.secret ? t("bulk.provided") : t("bulk.generate")}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {row.tags.join(", ") || "—"}
                 </TableCell>
                 <TableCell>
                   {row.error ? (
-                    <span className="text-destructive">{row.error}</span>
+                    <span className="text-destructive">
+                      {localize(row.error)}
+                    </span>
                   ) : (
-                    <span className="text-muted-foreground">OK</span>
+                    <span className="text-muted-foreground">
+                      {t("bulk.ok")}
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
@@ -330,17 +341,14 @@ function ReviewStage({
         </Table>
       </div>
       {invalid.length > 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {" "}
-          Rows with errors are skipped.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("bulk.skipped")}</p>
       ) : null}
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onBack}>
-          Choose another file
+          {t("bulk.another")}
         </Button>
         <Button type="button" onClick={onStart} disabled={validCount === 0}>
-          Create {validCount} device{validCount === 1 ? "" : "s"}
+          {t("bulk.createN", { count: validCount })}
         </Button>
       </DialogFooter>
     </div>
@@ -356,30 +364,31 @@ function ResultsStage({
   onDownload: () => void;
   onClose: () => void;
 }) {
+  const { t, localize } = useI18n();
   const created = results.filter((result) => result.deviceId).length;
   const failed = results.length - created;
   return (
     <div className="grid min-w-0 gap-4">
       <p className="text-sm">
-        {created} device{created === 1 ? "" : "s"} created
-        {failed > 0 ? `, ${failed} failed` : ""}.
+        {t("bulk.createdN", { count: created })}
+        {failed > 0
+          ? `${t("common.comma")}${t("bulk.failedN", { count: failed })}`
+          : ""}
+        .
       </p>
       <Alert variant="destructive">
         <TriangleAlert />
-        <AlertTitle>The secrets are shown only once</AlertTitle>
-        <AlertDescription>
-          Download the result file now and store it safely. It contains every
-          device secret in plain text.
-        </AlertDescription>
+        <AlertTitle>{t("bulk.onceTitle")}</AlertTitle>
+        <AlertDescription>{t("bulk.onceHint")}</AlertDescription>
       </Alert>
       <div className="max-h-80 overflow-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Line</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Result</TableHead>
-              <TableHead>Secret</TableHead>
+              <TableHead className="w-16">{t("bulk.line")}</TableHead>
+              <TableHead>{t("common.name")}</TableHead>
+              <TableHead>{t("bulk.result")}</TableHead>
+              <TableHead>{t("bulk.secret")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -395,12 +404,12 @@ function ResultsStage({
                   {result.error ? (
                     <span className="inline-flex items-start gap-1 text-destructive">
                       <CircleX className="mt-0.5 size-4 shrink-0" />
-                      {result.error}
+                      {localize(result.error)}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1">
                       <CircleCheck className="size-4 text-emerald-600" />
-                      Created
+                      {t("bulk.createdOne")}
                     </span>
                   )}
                 </TableCell>
@@ -414,7 +423,7 @@ function ResultsStage({
                         value={result.key}
                         size="icon"
                         variant="ghost"
-                        label={`Copy secret for ${result.name}`}
+                        label={t("bulk.copyFor", { name: result.name })}
                       />
                     </div>
                   ) : (
@@ -428,11 +437,11 @@ function ResultsStage({
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
-          Close
+          {t("common.close")}
         </Button>
         <Button type="button" onClick={onDownload}>
           <Download />
-          Download results (CSV)
+          {t("bulk.download")}
         </Button>
       </DialogFooter>
     </div>

@@ -13,6 +13,7 @@ import {
   postChannel,
 } from "@/components/ejad/channels/post-channel";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { TagsFormInput } from "@/components/tags-form-input";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ export function ChannelCreateDialog({
   workspaceRoute: string | null;
   onCreated: (channel: Channel) => void;
 }) {
+  const { t, localize } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [tagItems, setTagItems] = React.useState<Tag[]>([]);
   // Suggest a route from the name until the user edits the route.
@@ -103,13 +105,13 @@ export function ChannelCreateDialog({
         metadata: parseMetadata(values.metadata),
       }),
     onSuccess: (channel) => {
-      toast.success(`Channel “${channel.name}” created`);
+      toast.success(t("channels.created", { name: channel.name }));
       onOpenChange(false);
       onCreated(channel);
     },
     onError: (error: PostChannelError) => {
       if (error.field) {
-        form.setError(error.field, { message: error.message });
+        form.setError(error.field, { message: localize(error.message) });
         return;
       }
       toastError(error);
@@ -131,15 +133,13 @@ export function ChannelCreateDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus />
-          Create channel
+          {t("channels.create")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create channel</DialogTitle>
-          <DialogDescription>
-            Devices publish and subscribe to a channel by its route.
-          </DialogDescription>
+          <DialogTitle>{t("channels.create")}</DialogTitle>
+          <DialogDescription>{t("channels.createHint")}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -151,12 +151,14 @@ export function ChannelCreateDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Name</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("common.name")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       autoFocus
-                      placeholder="Floor 1 temperature"
+                      placeholder={t("channels.namePlaceholder")}
                       onChange={(event) => {
                         field.onChange(event);
                         if (!routeTouched) {
@@ -178,10 +180,13 @@ export function ChannelCreateDialog({
               name="route"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Route</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("workspaces.route")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       {...field}
+                      dir="ltr"
                       className="font-mono"
                       placeholder="floor-1-temperature"
                       maxLength={CHANNEL_ROUTE_MAX_LENGTH}
@@ -194,13 +199,12 @@ export function ChannelCreateDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Cannot be changed later. Letters, digits, “-” and “_”,
-                    starting with a letter.
+                    {t("channels.routeHint")}
                     {workspaceRoute && route ? (
                       <>
                         {" "}
-                        Topic:{" "}
-                        <code className="font-mono break-all">
+                        {t("channels.topic")}{" "}
+                        <code className="font-mono break-all" dir="ltr">
                           {channelTopic(workspaceRoute, route)}
                         </code>
                       </>
@@ -216,9 +220,9 @@ export function ChannelCreateDialog({
               render={({ field }) => (
                 <TagsFormInput
                   field={field}
-                  label="Tags"
+                  label={t("workspaces.tags")}
                   newTags={tagItems}
-                  placeholder="Type a tag and press Enter"
+                  placeholder={t("workspaces.tagsPlaceholder")}
                   setTags={setTagItems}
                 />
               )}
@@ -228,7 +232,7 @@ export function ChannelCreateDialog({
               name="metadata"
               render={({ field }) => (
                 <FormItem className="min-w-0">
-                  <FormLabel>Metadata</FormLabel>
+                  <FormLabel>{t("workspaces.metadata")}</FormLabel>
                   <FormControl>
                     <JsonEditor
                       className="[&_.cm-editor]:min-h-24"
@@ -236,7 +240,9 @@ export function ChannelCreateDialog({
                       value={field.value}
                     />
                   </FormControl>
-                  <FormDescription>A JSON object.</FormDescription>
+                  <FormDescription>
+                    {t("workspaces.metadataHint")}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -247,10 +253,10 @@ export function ChannelCreateDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? "Creating…" : "Create channel"}
+                {create.isPending ? t("common.creating") : t("channels.create")}
               </Button>
             </DialogFooter>
           </form>

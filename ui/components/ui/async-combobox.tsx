@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/ejad/i18n-provider";
 
 export type ComboOption = {
   value: string;
@@ -79,13 +80,14 @@ export function AsyncCombobox({
   onSelectedChange,
   queryKey,
   mode = "server",
-  placeholder = "Select…",
-  searchPlaceholder = "Search…",
-  emptyText = "No results.",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
   disabled,
   className,
   id,
 }: AsyncComboboxProps) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebounced(search);
@@ -161,9 +163,11 @@ export function AsyncCombobox({
           )}
         >
           <span className="truncate">
-            {value ? (selected?.label ?? value) : placeholder}
+            {value
+              ? (selected?.label ?? value)
+              : (placeholder ?? t("combo.select"))}
             {selected?.detail ? (
-              <span className="ml-1.5 text-xs text-muted-foreground">
+              <span className="ms-1.5 text-xs text-muted-foreground">
                 {selected.detail}
               </span>
             ) : null}
@@ -177,7 +181,7 @@ export function AsyncCombobox({
       >
         <Command shouldFilter={mode === "client"}>
           <CommandInput
-            placeholder={searchPlaceholder}
+            placeholder={searchPlaceholder ?? t("table.search")}
             value={search}
             onValueChange={setSearch}
           />
@@ -185,7 +189,7 @@ export function AsyncCombobox({
             {query.isPending ? (
               <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
-                Loading…
+                {t("common.loadingEllipsis")}
               </div>
             ) : query.isError ? (
               <div className="py-6 text-center text-sm text-destructive">
@@ -193,7 +197,7 @@ export function AsyncCombobox({
               </div>
             ) : (
               <>
-                <CommandEmpty>{emptyText}</CommandEmpty>
+                <CommandEmpty>{emptyText ?? t("table.noResults")}</CommandEmpty>
                 <CommandGroup>
                   {options.map((option) => (
                     <CommandItem
@@ -210,7 +214,7 @@ export function AsyncCombobox({
                       />
                       <span className="truncate">{option.label}</span>
                       {option.detail ? (
-                        <span className="ml-1.5 text-xs text-muted-foreground">
+                        <span className="ms-1.5 text-xs text-muted-foreground">
                           {option.detail}
                         </span>
                       ) : null}

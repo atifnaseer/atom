@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ export function WorkspaceDeleteDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: (workspace: Workspace) => void;
 }) {
+  const { t } = useI18n();
   const remove = useMutation({
     mutationFn: async (target: Workspace) => {
       await graphqlClient({
@@ -38,7 +40,7 @@ export function WorkspaceDeleteDialog({
       return target;
     },
     onSuccess: (target) => {
-      toast.success(`Workspace “${target.name}” deleted`);
+      toast.success(t("workspaces.deleted", { name: target.name }));
       onDeleted(target);
     },
     onError: (error) => toastError(error),
@@ -54,20 +56,15 @@ export function WorkspaceDeleteDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Delete workspace “{workspace?.name}”?
+            {t("workspaces.deleteTitle", { name: workspace?.name ?? "" })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Members lose access and devices in{" "}
-            <span className="font-medium text-foreground">
-              {workspace?.name}
-            </span>{" "}
-            can no longer connect or send messages. A platform administrator can
-            restore it until it is purged.
+            {t("workspaces.deleteHint", { name: workspace?.name ?? "" })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={remove.isPending}>
-            Cancel
+            {t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -78,7 +75,7 @@ export function WorkspaceDeleteDialog({
               if (workspace) remove.mutate(workspace);
             }}
           >
-            {remove.isPending ? "Deleting…" : "Delete workspace"}
+            {remove.isPending ? t("common.deleting") : t("workspaces.delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -31,6 +31,7 @@ import {
 } from "@/components/ejad/dashboards/widget-card";
 import { WidgetFormDialog } from "@/components/ejad/dashboards/widget-form-dialog";
 import { LoadProblem, toastError } from "@/components/ejad/error-alert";
+import { useT } from "@/components/ejad/i18n-provider";
 import { IfAllowed } from "@/components/ejad/if-allowed";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,6 +98,7 @@ export function DashboardView({
   workspaceId: string;
   dashboardId: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const queryClient = useQueryClient();
   const {
@@ -144,7 +146,7 @@ export function DashboardView({
     onSuccess: (next) => {
       setCached(next);
       setDraft(null);
-      toast.success("Dashboard saved");
+      toast.success(t("dashboards.saved"));
     },
     onError: (err) => toastError(err),
   });
@@ -182,10 +184,10 @@ export function DashboardView({
       <div className="grid grid-cols-1 gap-4">
         <BackLink />
         <LoadProblem
-          what="dashboard"
+          kind="dashboard"
           error={error}
           notFound={!error}
-          back={{ href: "/dashboards", label: "Back to dashboards" }}
+          back={{ href: "/dashboards", label: t("dashboards.back") }}
         />
       </div>
     );
@@ -213,9 +215,7 @@ export function DashboardView({
             {dashboardName(dashboard)}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {editing
-              ? "Drag widgets to reorder them, pick a size, then save."
-              : "Updates every few seconds from stored messages."}
+            {editing ? t("dashboards.editHint") : t("dashboards.liveHint")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -224,7 +224,7 @@ export function DashboardView({
               <IfAllowed ability="manage">
                 <Button variant="outline" onClick={addWidget}>
                   <Plus />
-                  Add widget
+                  {t("dashboards.addWidget")}
                 </Button>
               </IfAllowed>
               <Button
@@ -232,14 +232,14 @@ export function DashboardView({
                 disabled={save.isPending}
                 onClick={() => setDraft(null)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 disabled={!dirty || save.isPending}
                 onClick={() => save.mutate(layout)}
               >
                 <Save />
-                {save.isPending ? "Saving…" : "Save"}
+                {save.isPending ? t("common.saving") : t("common.save")}
               </Button>
             </>
           ) : (
@@ -250,12 +250,12 @@ export function DashboardView({
                 disabled={layout.length === 0}
               >
                 <Maximize />
-                Full screen
+                {t("dashboards.fullScreen")}
               </Button>
               <IfAllowed ability="manage">
                 <Button onClick={startEditing}>
                   <Pencil />
-                  Edit
+                  {t("common.edit")}
                 </Button>
                 <DashboardActionsMenu dashboard={dashboard} actions={actions} />
               </IfAllowed>
@@ -278,7 +278,7 @@ export function DashboardView({
             </h2>
             <Button variant="outline" onClick={fullscreen.exit}>
               <Minimize />
-              Exit full screen
+              {t("dashboards.exitFullScreen")}
             </Button>
           </div>
         ) : null}
@@ -288,19 +288,19 @@ export function DashboardView({
             <CardContent className="grid justify-items-center gap-3 py-8 text-center">
               <LayoutDashboard className="size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                This dashboard has no widgets yet.
+                {t("dashboards.noWidgets")}
               </p>
               <IfAllowed ability="manage">
                 <Button variant="outline" onClick={addWidget}>
                   <Plus />
-                  Add widget
+                  {t("dashboards.addWidget")}
                 </Button>
               </IfAllowed>
             </CardContent>
           </Card>
         ) : (
           <ul
-            aria-label="Widgets"
+            aria-label={t("dashboards.widgetsLabel")}
             className="grid auto-rows-[17rem] grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
           >
             {layout.map((widget, index) => (
@@ -373,13 +373,14 @@ export function DashboardView({
 }
 
 function BackLink() {
+  const t = useT();
   return (
     <Link
       href="/dashboards"
       className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
     >
-      <ArrowLeft className="size-4" />
-      Dashboards
+      <ArrowLeft className="size-4 rtl:rotate-180" />
+      {t("nav.dashboards")}
     </Link>
   );
 }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useT } from "@/components/ejad/i18n-provider";
 import { HeaderSkeleton } from "@/components/ejad/skeletons";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -5,8 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 const STATS = ["devices", "channels", "messages"];
 
 export default function Loading() {
+  const t = useT();
   return (
-    <section className="grid gap-6" aria-busy="true" aria-label="Loading">
+    <section
+      className="grid gap-6"
+      aria-busy="true"
+      aria-label={t("common.loading")}
+    >
       <HeaderSkeleton />
       <div className="grid gap-3 sm:grid-cols-3">
         {STATS.map((id) => (

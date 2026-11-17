@@ -2,6 +2,7 @@
 
 import { TriangleAlert } from "lucide-react";
 import { CopyButton } from "@/components/ejad/copy-button";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ export function SharedKeyDialog({
   shown: ShownKey | null;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <Dialog
       open={shown !== null}
@@ -44,27 +46,28 @@ export function SharedKeyDialog({
         <div className="grid min-w-0 gap-2">
           <code
             data-testid="device-secret"
+            dir="ltr"
             className="block break-all rounded-md border bg-muted px-3 py-2 font-mono text-sm select-all"
           >
             {shown?.key}
           </code>
           <div>
-            <CopyButton value={shown?.key ?? ""} label="Copy secret" />
+            <CopyButton
+              value={shown?.key ?? ""}
+              label={t("devices.copySecret")}
+            />
           </div>
         </div>
         {shown?.once ? (
           <Alert variant="destructive">
             <TriangleAlert />
-            <AlertTitle>This secret is shown only once</AlertTitle>
-            <AlertDescription>
-              Copy it now and store it safely. After you close this dialog it is
-              not displayed again here.
-            </AlertDescription>
+            <AlertTitle>{t("devices.onceTitle")}</AlertTitle>
+            <AlertDescription>{t("devices.onceHint")}</AlertDescription>
           </Alert>
         ) : null}
         <DialogFooter>
           <Button type="button" onClick={onClose}>
-            {shown?.once ? "I have copied the secret" : "Close"}
+            {shown?.once ? t("devices.copiedSecret") : t("common.close")}
           </Button>
         </DialogFooter>
       </DialogContent>

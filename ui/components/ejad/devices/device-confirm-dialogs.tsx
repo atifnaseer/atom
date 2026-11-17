@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,7 @@ export function DeviceStatusDialog({
   onOpenChange: (open: boolean) => void;
   onDone: (device: Device) => void;
 }) {
+  const { t } = useI18n();
   const enabling = device ? !isDeviceEnabled(device) : false;
   const toggle = useMutation({
     mutationFn: async (target: Pending) => {
@@ -47,7 +49,9 @@ export function DeviceStatusDialog({
     },
     onSuccess: (updated) => {
       toast.success(
-        `Device “${updated.name}” ${isDeviceEnabled(updated) ? "enabled" : "disabled"}`,
+        t(isDeviceEnabled(updated) ? "devices.enabled" : "devices.disabled", {
+          name: updated.name,
+        }),
       );
       onDone(updated);
     },
@@ -64,17 +68,17 @@ export function DeviceStatusDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {enabling ? "Enable" : "Disable"} device “{device?.name}”?
+            {t(enabling ? "devices.enableTitle" : "devices.disableTitle", {
+              name: device?.name ?? "",
+            })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {enabling
-              ? "The device can authenticate with its secret and send messages again."
-              : "The device can no longer authenticate or send messages until it is enabled again. Its secrets are kept."}
+            {enabling ? t("devices.enableHint") : t("devices.disableHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={toggle.isPending}>
-            Cancel
+            {t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             variant={enabling ? "default" : "destructive"}
@@ -86,11 +90,11 @@ export function DeviceStatusDialog({
           >
             {toggle.isPending
               ? enabling
-                ? "Enabling…"
-                : "Disabling…"
+                ? t("devices.enabling")
+                : t("devices.disabling")
               : enabling
-                ? "Enable device"
-                : "Disable device"}
+                ? t("devices.enable")
+                : t("devices.disable")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -107,6 +111,7 @@ export function DeviceDeleteDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: (device: Pending) => void;
 }) {
+  const { t } = useI18n();
   const remove = useMutation({
     mutationFn: async (target: Pending) => {
       await graphqlClient({
@@ -116,7 +121,7 @@ export function DeviceDeleteDialog({
       return target;
     },
     onSuccess: (target) => {
-      toast.success(`Device “${target.name}” deleted`);
+      toast.success(t("devices.deleted", { name: target.name }));
       onDeleted(target);
     },
     onError: (error) => toastError(error),
@@ -131,16 +136,16 @@ export function DeviceDeleteDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete device “{device?.name}”?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("devices.deleteTitle", { name: device?.name ?? "" })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            The device and its secrets stop working immediately and it is
-            removed from this workspace. A platform administrator can restore it
-            until it is purged.
+            {t("devices.deleteHint")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={remove.isPending}>
-            Cancel
+            {t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
@@ -150,7 +155,7 @@ export function DeviceDeleteDialog({
               if (device) remove.mutate(device);
             }}
           >
-            {remove.isPending ? "Deleting…" : "Delete device"}
+            {remove.isPending ? t("common.deleting") : t("devices.delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

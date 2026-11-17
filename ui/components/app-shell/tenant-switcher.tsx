@@ -5,6 +5,7 @@ import { Building2, Check, ChevronsUpDown, Globe2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useTenant } from "@/components/app-shell/tenant-provider";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ export function TenantSwitcher() {
   const { isMobile } = useSidebar();
   const { selection, setTenant } = useTenant();
   const router = useRouter();
+  const { t, locale } = useI18n();
 
   const { data } = useQuery({
     queryKey: ["tenant-switcher"],
@@ -70,8 +72,12 @@ export function TenantSwitcher() {
   }, [data, selection.id, selection.name, options, setTenant]);
 
   const Icon = selection.id === GLOBAL_TENANT ? Globe2 : Building2;
-  const label = tenantLabel(selection);
-  const badgeLabel = selection.id === GLOBAL_TENANT ? "platform" : "workspace";
+  const label =
+    selection.id === GLOBAL_TENANT ? t("shell.global") : tenantLabel(selection);
+  const badgeLabel =
+    selection.id === GLOBAL_TENANT
+      ? t("shell.badgePlatform")
+      : t("shell.badgeWorkspace");
 
   return (
     <SidebarMenu>
@@ -79,7 +85,7 @@ export function TenantSwitcher() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              tooltip={`Workspace: ${label}`}
+              tooltip={t("shell.workspaceTooltip", { name: label })}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Icon className="shrink-0" />
@@ -90,16 +96,16 @@ export function TenantSwitcher() {
               >
                 {badgeLabel}
               </Badge>
-              <ChevronsUpDown className="ml-auto shrink-0 group-data-[collapsible=icon]:hidden" />
+              <ChevronsUpDown className="ms-auto shrink-0 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-56"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? "bottom" : locale === "ar" ? "left" : "right"}
             align="start"
             sideOffset={4}
           >
-            <DropdownMenuLabel>Workspace</DropdownMenuLabel>
+            <DropdownMenuLabel>{t("shell.workspace")}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {options.map((option) => (
               <DropdownMenuItem
@@ -109,7 +115,11 @@ export function TenantSwitcher() {
                   router.push("/dashboard");
                 }}
               >
-                <span className="flex-1">{option.name}</span>
+                <span className="flex-1">
+                  {option.id === GLOBAL_TENANT
+                    ? t("shell.global")
+                    : option.name}
+                </span>
                 {selection.id === option.id ? (
                   <Check className="size-4" />
                 ) : null}

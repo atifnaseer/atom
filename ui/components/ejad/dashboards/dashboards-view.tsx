@@ -1,7 +1,6 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
 import { LayoutDashboard, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ejad/dashboards/use-dashboards";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { ErrorAlert } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { IfAllowed } from "@/components/ejad/if-allowed";
 import { PageHeader } from "@/components/ejad/page-header";
 import { useAccess } from "@/components/ejad/use-access";
@@ -27,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardName, parseLayout } from "@/lib/ejad/dashboards";
 
 export function DashboardsView({ workspaceId }: { workspaceId: string }) {
+  const { t, format } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data, error, isPending, refetch } = useDashboards(workspaceId);
@@ -59,13 +60,13 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={LayoutDashboard}
-        title="Dashboards"
-        description="Live charts and values from your channels’ stored messages."
+        title={t("page.dashboards.title")}
+        description={t("page.dashboards.description")}
         actions={
           <IfAllowed ability="manage">
             <Button onClick={actions.create}>
               <Plus />
-              Create dashboard
+              {t("dashboards.create")}
             </Button>
           </IfAllowed>
         }
@@ -73,7 +74,7 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
 
       {error ? (
         <ErrorAlert
-          title="Could not load dashboards"
+          title={t("dashboards.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -81,11 +82,11 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-8"
-            placeholder="Search dashboards…"
-            aria-label="Search dashboards"
+            className="ps-8"
+            placeholder={t("dashboards.search")}
+            aria-label={t("dashboards.search")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -100,24 +101,24 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
         </div>
       ) : shown.length === 0 && needle ? (
         <p className="p-6 text-center text-sm text-muted-foreground">
-          No dashboards match your search.
+          {t("dashboards.noMatches")}
         </p>
       ) : shown.length === 0 ? (
         error ? null : (
           <Card>
             <EmptyState
               icon={LayoutDashboard}
-              title="No dashboards yet"
+              title={t("dashboards.emptyTitle")}
               description={
                 canManage
-                  ? "A dashboard shows live charts, gauges and values from the messages your devices send. Turn on “Store messages” on a channel first, then create a dashboard."
-                  : "A dashboard shows live charts and values from your devices’ messages. Ask a workspace admin to create one."
+                  ? t("dashboards.emptyHint")
+                  : t("dashboards.emptyHintReadOnly")
               }
               action={
                 canManage ? (
                   <Button onClick={actions.create}>
                     <Plus />
-                    Create dashboard
+                    {t("dashboards.create")}
                   </Button>
                 ) : null
               }
@@ -126,7 +127,7 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
         )
       ) : (
         <ul
-          aria-label="Dashboards"
+          aria-label={t("nav.dashboards")}
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
         >
           {shown.map((dashboard) => {
@@ -145,9 +146,9 @@ export function DashboardsView({ workspaceId }: { workspaceId: string }) {
                         {dashboardName(dashboard)}
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        {widgets} widget{widgets === 1 ? "" : "s"} · updated{" "}
-                        {formatDistanceToNow(new Date(changed), {
-                          addSuffix: true,
+                        {t("dashboards.widgets", { count: widgets })} ·{" "}
+                        {t("dashboards.updated", {
+                          when: format.relative(changed),
                         })}
                       </p>
                     </div>

@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export function WorkspaceCreateDialog({
 }: {
   onCreated: (workspace: Workspace) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = React.useState(false);
   // Suggest a route from the name until the user types one themselves.
   const [routeEdited, setRouteEdited] = React.useState(false);
@@ -84,9 +86,9 @@ export function WorkspaceCreateDialog({
   const create = useMutation({
     mutationFn: postWorkspace,
     onSuccess: ({ workspace, seedError }) => {
-      toast.success(`Workspace “${workspace.name}” created`);
+      toast.success(t("workspaces.created", { name: workspace.name }));
       if (seedError) {
-        toast.warning(`Default device types were not added: ${seedError}`);
+        toast.warning(t("workspaces.seedFailed", { error: seedError }));
       }
       setOpen(false);
       onCreated(workspace);
@@ -94,7 +96,7 @@ export function WorkspaceCreateDialog({
     onError: (error: Error & { code?: string }) => {
       if (error.code === "CONFLICT") {
         form.setError("route", {
-          message: "This route is already used by another workspace.",
+          message: t("workspaces.routeTaken"),
         });
         return;
       }
@@ -116,16 +118,13 @@ export function WorkspaceCreateDialog({
       <DialogTrigger asChild>
         <Button>
           <Plus />
-          Create workspace
+          {t("workspaces.create")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create workspace</DialogTitle>
-          <DialogDescription>
-            A workspace holds your devices, channels and dashboards. You become
-            its administrator.
-          </DialogDescription>
+          <DialogTitle>{t("workspaces.create")}</DialogTitle>
+          <DialogDescription>{t("workspaces.createHint")}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -137,12 +136,14 @@ export function WorkspaceCreateDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Name</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("common.name")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       autoFocus
-                      placeholder="Riyadh water network"
+                      placeholder={t("workspaces.namePlaceholder")}
                       onChange={(event) => {
                         field.onChange(event);
                         if (!routeEdited) {
@@ -164,10 +165,13 @@ export function WorkspaceCreateDialog({
               name="route"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Route</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("workspaces.route")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       {...field}
+                      dir="ltr"
                       className="font-mono"
                       maxLength={ROUTE_MAX_LENGTH}
                       placeholder="riyadh-water"
@@ -181,9 +185,8 @@ export function WorkspaceCreateDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Lowercase letters, digits and hyphens. Devices use it in
-                    message topics, for example{" "}
-                    <code className="font-mono">
+                    {t("workspaces.routeHint")}{" "}
+                    <code className="font-mono" dir="ltr">
                       m/{field.value || "route"}/c/…
                     </code>
                   </FormDescription>
@@ -193,10 +196,7 @@ export function WorkspaceCreateDialog({
             />
             <Alert>
               <TriangleAlert />
-              <AlertDescription>
-                {" "}
-                The route cannot be changed after the workspace is created.
-              </AlertDescription>
+              <AlertDescription>{t("workspaces.routeFixed")}</AlertDescription>
             </Alert>
             <DialogFooter>
               <Button
@@ -204,10 +204,12 @@ export function WorkspaceCreateDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={create.isPending}>
-                {create.isPending ? "Creating…" : "Create workspace"}
+                {create.isPending
+                  ? t("common.creating")
+                  : t("workspaces.create")}
               </Button>
             </DialogFooter>
           </form>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import {
   Building2,
   CalendarDays,
@@ -12,10 +11,11 @@ import {
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useTenant } from "@/components/app-shell/tenant-provider";
-import { StatusBadge } from "@/components/crud/status-badge";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { ErrorAlert } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import { useAccess } from "@/components/ejad/use-access";
 import { WorkspaceCreateDialog } from "@/components/ejad/workspaces/workspace-create-dialog";
 import { WorkspaceDeleteDialog } from "@/components/ejad/workspaces/workspace-delete-dialog";
@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { WorkspaceRoleKey } from "@/lib/ejad/access";
-import { roleLabel } from "@/lib/ejad/members";
 import { WORKSPACES_QUERY, type Workspace } from "@/lib/ejad/workspaces";
 import { graphqlClient } from "@/lib/graphql/client";
 import { GLOBAL_TENANT } from "@/lib/tenant/context";
@@ -42,6 +41,7 @@ const HOME = "/dashboard";
 
 export function WorkspacesView() {
   const router = useRouter();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const { selection, setTenant } = useTenant();
   const [editing, setEditing] = React.useState<Workspace | null>(null);
@@ -91,14 +91,14 @@ export function WorkspacesView() {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={Building2}
-        title="Workspaces"
-        description="A workspace keeps one project's devices, channels and people together. Pick one to work in, or create a new one."
+        title={t("page.workspaces.title")}
+        description={t("page.workspaces.description")}
         actions={<WorkspaceCreateDialog onCreated={refresh} />}
       />
 
       {error ? (
         <ErrorAlert
-          title="Could not load workspaces"
+          title={t("workspaces.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -111,8 +111,8 @@ export function WorkspacesView() {
       ) : workspaces.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="No workspaces yet"
-          description="Create your first workspace, then add devices and channels to it."
+          title={t("workspaces.emptyTitle")}
+          description={t("workspaces.emptyHint")}
           action={<WorkspaceCreateDialog onCreated={refresh} />}
           className="rounded-xl border border-dashed"
         />
@@ -191,6 +191,7 @@ function WorkspaceCard({
   onEdit?: () => void;
   onDelete?: () => void;
 }) {
+  const { t, format } = useI18n();
   return (
     <Card
       className={`relative gap-0 p-0 transition-colors hover:border-primary/50 hover:bg-muted/40 ${
@@ -200,20 +201,20 @@ function WorkspaceCard({
       <button
         type="button"
         onClick={onOpen}
-        className="grid gap-3 rounded-xl p-5 pr-12 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Open workspace ${workspace.name}`}
+        className="grid gap-3 rounded-xl p-5 pe-12 text-start outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={t("workspaces.open", { name: workspace.name })}
       >
         <div className="flex min-w-0 items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate font-semibold">{workspace.name}</span>
           {current ? (
             <Badge variant="secondary" className="shrink-0 text-[0.68rem]">
-              Current
+              {t("workspaces.current")}
             </Badge>
           ) : null}
           {role ? (
             <Badge variant="outline" className="shrink-0 text-[0.68rem]">
-              {roleLabel(role)}
+              {t(`role.${role}`)}
             </Badge>
           ) : null}
         </div>
@@ -224,19 +225,19 @@ function WorkspaceCard({
           <StatusBadge value={workspace.status.toLowerCase()} />
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="size-3.5" />
-            {format(new Date(workspace.createdAt), "d MMM yyyy")}
+            {format.date(workspace.createdAt)}
           </span>
         </div>
       </button>
       {onEdit || onDelete ? (
-        <div className="absolute top-3 right-3">
+        <div className="absolute end-3 top-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-8"
-                aria-label={`Actions for ${workspace.name}`}
+                aria-label={t("common.actionsFor", { name: workspace.name })}
               >
                 <MoreVertical />
               </Button>
@@ -245,14 +246,14 @@ function WorkspaceCard({
               {onEdit ? (
                 <DropdownMenuItem onSelect={onEdit}>
                   <Pencil />
-                  Edit
+                  {t("common.edit")}
                 </DropdownMenuItem>
               ) : null}
               {onEdit && onDelete ? <DropdownMenuSeparator /> : null}
               {onDelete ? (
                 <DropdownMenuItem variant="destructive" onSelect={onDelete}>
                   <Trash2 />
-                  Delete
+                  {t("common.delete")}
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

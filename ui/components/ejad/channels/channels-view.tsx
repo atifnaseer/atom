@@ -6,7 +6,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import { ExternalLink, MoreVertical, Radio, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +20,7 @@ import {
   useGroupFilter,
   useObjectGroups,
 } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
 import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const canManage = useAccess().can("manage");
+  const { t, format } = useI18n();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get(`${PARAM}.page`), 1);
   const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
@@ -96,7 +97,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
     () => [
       {
         accessorKey: "name",
-        header: "Name",
+        header: t("common.name"),
         cell: ({ row }) => (
           <Link
             href={`/channels/${row.original.id}`}
@@ -109,7 +110,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
       },
       {
         id: "route",
-        header: "Route",
+        header: t("workspaces.route"),
         cell: ({ row }) => {
           const route = channelRoute(row.original);
           return route ? (
@@ -121,7 +122,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
       },
       {
         id: "tags",
-        header: "Tags",
+        header: t("workspaces.tags"),
         cell: ({ row }) => {
           const tags = channelTags(row.original);
           return tags.length ? (
@@ -133,7 +134,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
       },
       {
         id: "groups",
-        header: "Group",
+        header: t("devices.group"),
         cell: ({ row }) => (
           <GroupBadges
             groupIds={memberGroupIds(row.original)}
@@ -143,17 +144,17 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: t("common.created"),
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground">
-            {format(new Date(row.original.createdAt), "d MMM yyyy, HH:mm")}
+            {format.date(row.original.createdAt, "dateTime")}
           </span>
         ),
       },
       {
         id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        meta: { className: "w-12 text-right" },
+        header: () => <span className="sr-only">{t("common.actions")}</span>,
+        meta: { className: "w-12 text-end" },
         cell: ({ row }) => {
           const channel = row.original;
           return (
@@ -163,7 +164,9 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
                   variant="ghost"
                   size="icon"
                   className="size-8"
-                  aria-label={`Actions for ${channelLabel(channel)}`}
+                  aria-label={t("common.actionsFor", {
+                    name: channelLabel(channel),
+                  })}
                 >
                   <MoreVertical />
                 </Button>
@@ -173,7 +176,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
                   onSelect={() => router.push(`/channels/${channel.id}`)}
                 >
                   <ExternalLink />
-                  Open
+                  {t("common.open")}
                 </DropdownMenuItem>
                 {canManage ? (
                   <>
@@ -184,7 +187,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
                       onSelect={() => setDeleting(channel)}
                     >
                       <Trash2 />
-                      Delete
+                      {t("common.delete")}
                     </DropdownMenuItem>
                   </>
                 ) : null}
@@ -194,15 +197,15 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         },
       },
     ],
-    [router, groupTree, canManage],
+    [router, groupTree, canManage, t, format],
   );
 
   return (
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={Radio}
-        title="Channels"
-        description="Create channels that devices publish to and subscribe from."
+        title={t("page.channels.title")}
+        description={t("page.channels.description")}
         actions={
           canManage ? (
             <ChannelCreateDialog
@@ -215,7 +218,7 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
 
       {error ? (
         <ErrorAlert
-          title="Could not load channels"
+          title={t("channels.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -228,18 +231,18 @@ export function ChannelsView({ workspaceId }: { workspaceId: string }) {
         page={page}
         limit={limit}
         paramKey={PARAM}
-        searchPlaceholder="Search by name, route or tag…"
+        searchPlaceholder={t("channels.search")}
         loading={isPending}
-        noResultsMessage="No channels match your search."
+        noResultsMessage={t("channels.noMatches")}
         emptyState={
           q || groupId || error ? undefined : (
             <EmptyState
               icon={Radio}
-              title="No channels yet"
+              title={t("channels.emptyTitle")}
               description={
                 canManage
-                  ? "A channel is a topic that devices publish messages to and subscribe to. Create one, then connect devices to it."
-                  : "A channel is a topic that devices publish messages to and subscribe to. Ask a workspace admin to create one."
+                  ? t("channels.emptyHint")
+                  : t("channels.emptyHintReadOnly")
               }
               action={
                 canManage ? (

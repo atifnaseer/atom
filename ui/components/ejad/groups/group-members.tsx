@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/crud/status-badge";
 import { ConfirmDialog } from "@/components/ejad/confirm-dialog";
 import { EmptyState } from "@/components/ejad/empty-state";
 import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
@@ -16,6 +15,8 @@ import {
   GROUP_MEMBERS_QUERY_KEY,
   useRefreshGroups,
 } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -101,7 +102,7 @@ export function GroupMembers({
   group: ObjectGroup;
 }) {
   const param = kind === "device" ? "groupDevices" : "groupChannels";
-  const noun = kind === "device" ? "device" : "channel";
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get(`${param}.page`), 1);
   const limit = positiveInt(searchParams.get(`${param}.limit`), 20);
@@ -132,7 +133,12 @@ export function GroupMembers({
       return member;
     },
     onSuccess: (member) => {
-      toast.success(`Removed “${member.label}” from “${group.name}”`);
+      toast.success(
+        t("members.removedFromGroup", {
+          name: member.label,
+          group: group.name,
+        }),
+      );
       setRemoving(null);
       refresh();
     },
@@ -145,7 +151,7 @@ export function GroupMembers({
     const cols: ColumnDef<Member>[] = [
       {
         accessorKey: "label",
-        header: "Name",
+        header: t("common.name"),
         cell: ({ row }) => (
           <Link
             href={`${base}/${row.original.id}`}
@@ -158,7 +164,8 @@ export function GroupMembers({
       },
       {
         id: "detail",
-        header: kind === "device" ? "External ID" : "Route",
+        header:
+          kind === "device" ? t("devices.externalId") : t("workspaces.route"),
         cell: ({ row }) =>
           row.original.detail ? (
             <code className="font-mono text-xs">{row.original.detail}</code>
@@ -170,35 +177,35 @@ export function GroupMembers({
     if (kind === "device") {
       cols.push({
         id: "status",
-        header: "Status",
+        header: t("common.status"),
         cell: ({ row }) => <StatusBadge value={row.original.status ?? ""} />,
       });
     }
     if (!canManage) return cols;
     cols.push({
       id: "actions",
-      header: () => <span className="sr-only">Actions</span>,
-      meta: { className: "w-12 text-right" },
+      header: () => <span className="sr-only">{t("common.actions")}</span>,
+      meta: { className: "w-12 text-end" },
       cell: ({ row }) => (
         <Button
           variant="ghost"
           size="sm"
           disabled={remove.isPending}
-          aria-label={`Remove ${row.original.label} from the group`}
+          aria-label={t("gm.removeAria", { name: row.original.label })}
           onClick={() => setRemoving(row.original)}
         >
           <X />
-          Remove
+          {t("common.remove")}
         </Button>
       ),
     });
     return cols;
-  }, [kind, remove, canManage]);
+  }, [kind, remove, canManage, t]);
 
   return (
     <div className="grid grid-cols-1 gap-4">
       {error ? (
-        <ErrorAlert title={`Could not load ${noun}s`} error={error} />
+        <ErrorAlert title={t(`gm.loadFailed.${kind}`)} error={error} />
       ) : null}
       <DataTable
         columns={columns}
@@ -207,24 +214,24 @@ export function GroupMembers({
         page={page}
         limit={limit}
         paramKey={param}
-        searchPlaceholder={`Search ${noun}s in this group…`}
+        searchPlaceholder={t(`gm.search.${kind}`)}
         loading={isPending}
-        noResultsMessage={`No ${noun}s in this group match your search.`}
+        noResultsMessage={t(`gm.noMatches.${kind}`)}
         emptyState={
           q || error ? undefined : (
             <EmptyState
               icon={kind === "device" ? Cpu : Radio}
-              title={`No ${noun}s in this group yet`}
+              title={t(`gm.emptyTitle.${kind}`)}
               description={
                 canManage
-                  ? `Add ${noun}s to this group to organize them and filter the ${noun} list by it.`
-                  : `Ask a workspace admin to add ${noun}s to this group.`
+                  ? t(`gm.emptyHint.${kind}`)
+                  : t(`gm.emptyHintReadOnly.${kind}`)
               }
               action={
                 canManage ? (
                   <Button onClick={() => setAdding(true)}>
                     <Plus />
-                    Add {noun}s
+                    {t(`gm.add.${kind}`)}
                   </Button>
                 ) : null
               }
@@ -236,7 +243,7 @@ export function GroupMembers({
           canManage ? (
             <Button onClick={() => setAdding(true)}>
               <Plus />
-              Add {noun}s
+              {t(`gm.add.${kind}`)}
             </Button>
           ) : null
         }
@@ -251,10 +258,13 @@ export function GroupMembers({
       />
       <ConfirmDialog
         open={removing !== null}
-        title={`Remove “${removing?.label ?? ""}” from “${group.name}”?`}
-        description={`The ${noun} itself is kept, along with its connections. It only stops being a member of this group.`}
-        confirmLabel="Remove"
-        pendingLabel="Removing…"
+        title={t("gm.removeTitle", {
+          name: removing?.label ?? "",
+          group: group.name,
+        })}
+        description={t(`gm.removeHint.${kind}`)}
+        confirmLabel={t("common.remove")}
+        pendingLabel={t("common.removing")}
         pending={remove.isPending}
         onConfirm={() => {
           if (removing) remove.mutate(removing);

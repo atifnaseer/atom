@@ -5,6 +5,7 @@ import { Loader2, Search, X } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -113,7 +114,7 @@ export function GroupAddMembersDialog({
   group: ObjectGroup;
   onAdded: () => void;
 }) {
-  const noun = kind === "device" ? "device" : "channel";
+  const { t } = useI18n();
   const [search, setSearch] = React.useState("");
   const q = useDebounced(search.trim());
   const [selected, setSelected] = React.useState<Map<string, string>>(
@@ -145,7 +146,7 @@ export function GroupAddMembersDialog({
       const next = new Map(current);
       if (checked) {
         if (next.size >= MAX_PER_ADD) {
-          toast.error(`Pick at most ${MAX_PER_ADD} ${noun}s at a time.`);
+          toast.error(t(`gm.max.${kind}`, { count: MAX_PER_ADD }));
           return current;
         }
         next.set(item.id, item.label);
@@ -167,13 +168,17 @@ export function GroupAddMembersDialog({
       if (done.length) onAdded();
       if (failed.length === 0) {
         toast.success(
-          `Added ${done.length} ${noun}${done.length === 1 ? "" : "s"} to “${group.name}”`,
+          t(`gm.added.${kind}`, { count: done.length, group: group.name }),
         );
         onOpenChange(false);
         return;
       }
       toast.error(
-        `Added ${done.length}, failed ${failed.length}: ${failed[0].error}`,
+        t("gm.partial", {
+          done: done.length,
+          failed: failed.length,
+          error: failed[0].error,
+        }),
       );
       // Keep only the failures selected so they can be retried.
       setSelected(
@@ -195,10 +200,9 @@ export function GroupAddMembersDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add {noun}s</DialogTitle>
+          <DialogTitle>{t(`gm.add.${kind}`)}</DialogTitle>
           <DialogDescription>
-            Add {noun}s to “{group.name}”. A {noun} can belong to several
-            groups.
+            {t(`gm.addHint.${kind}`, { group: group.name })}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -210,11 +214,11 @@ export function GroupAddMembersDialog({
         >
           <div className="grid min-w-0 gap-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="pl-8"
-                placeholder={`Search ${noun}s…`}
-                aria-label={`Search ${noun}s`}
+                className="ps-8"
+                placeholder={t(`gm.searchAll.${kind}`)}
+                aria-label={t(`gm.searchAll.${kind}`)}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 disabled={add.isPending}
@@ -223,11 +227,11 @@ export function GroupAddMembersDialog({
             {selected.size > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {[...selected].map(([id, label]) => (
-                  <Badge key={id} variant="secondary" className="gap-1 pr-1">
+                  <Badge key={id} variant="secondary" className="gap-1 pe-1">
                     <span className="max-w-40 truncate">{label}</span>
                     <button
                       type="button"
-                      aria-label={`Remove ${label}`}
+                      aria-label={t("common.removeName", { name: label })}
                       className="rounded-sm opacity-70 hover:opacity-100"
                       onClick={() =>
                         setSelected((current) => {
@@ -248,7 +252,7 @@ export function GroupAddMembersDialog({
                 {candidates.isPending ? (
                   <p className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
                     <Loader2 className="size-4 animate-spin" />
-                    Loading {noun}s…
+                    {t(`gm.loading.${kind}`)}
                   </p>
                 ) : candidates.error ? (
                   <p className="p-3 text-sm text-destructive">
@@ -256,7 +260,7 @@ export function GroupAddMembersDialog({
                   </p>
                 ) : items.length === 0 ? (
                   <p className="p-3 text-sm text-muted-foreground">
-                    No {noun}s found.
+                    {t(`gm.none.${kind}`)}
                   </p>
                 ) : (
                   items.map((item) => {
@@ -286,7 +290,7 @@ export function GroupAddMembersDialog({
                           ) : null}
                         </span>
                         {item.inGroup ? (
-                          <Badge variant="outline">In group</Badge>
+                          <Badge variant="outline">{t("gm.inGroup")}</Badge>
                         ) : null}
                       </label>
                     );
@@ -301,13 +305,15 @@ export function GroupAddMembersDialog({
                     disabled={candidates.isFetchingNextPage}
                     onClick={() => candidates.fetchNextPage()}
                   >
-                    {candidates.isFetchingNextPage ? "Loading…" : "Load more"}
+                    {candidates.isFetchingNextPage
+                      ? t("common.loadingEllipsis")
+                      : t("common.loadMore")}
                   </Button>
                 ) : null}
               </div>
             </ScrollArea>
             <p className="text-xs text-muted-foreground">
-              {selected.size} selected.
+              {t("common.rowsSelected", { count: selected.size })}.
             </p>
           </div>
           <DialogFooter>
@@ -317,14 +323,14 @@ export function GroupAddMembersDialog({
               disabled={add.isPending}
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={add.isPending || !selected.size}>
               {add.isPending
-                ? "Adding…"
+                ? t("gm.adding")
                 : selected.size
-                  ? `Add ${selected.size} ${noun}${selected.size === 1 ? "" : "s"}`
-                  : `Add ${noun}s`}
+                  ? t(`gm.addN.${kind}`, { count: selected.size })
+                  : t(`gm.add.${kind}`)}
             </Button>
           </DialogFooter>
         </form>

@@ -13,11 +13,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/ejad/i18n-provider";
+import { arSA } from "date-fns/locale";
 
 export function DateTimePicker({
   value,
   onChange,
-  placeholder = "Pick a date and time",
+  placeholder,
   className,
 }: {
   value?: string;
@@ -25,6 +27,7 @@ export function DateTimePicker({
   placeholder?: string;
   className?: string;
 }) {
+  const { t, locale, format: fmt } = useI18n();
   const [open, setOpen] = React.useState(false);
 
   const parsedDate = React.useMemo(() => {
@@ -60,7 +63,9 @@ export function DateTimePicker({
   }
 
   const displayValue = parsedDate
-    ? `${format(parsedDate, "MMM d, yyyy")} at ${format(parsedDate, "HH:mm")}`
+    ? locale === "en"
+      ? `${format(parsedDate, "MMM d, yyyy")} at ${format(parsedDate, "HH:mm")}`
+      : fmt.date(parsedDate, "dateTime")
     : null;
 
   return (
@@ -69,13 +74,15 @@ export function DateTimePicker({
         <Button
           variant="outline"
           className={cn(
-            "w-full justify-start text-left font-normal",
+            "w-full justify-start text-start font-normal",
             !parsedDate && "text-muted-foreground",
             className,
           )}
         >
-          <CalendarIcon className="mr-2 size-4 shrink-0" />
-          <span className="flex-1 truncate">{displayValue ?? placeholder}</span>
+          <CalendarIcon className="me-2 size-4 shrink-0" />
+          <span className="flex-1 truncate">
+            {displayValue ?? placeholder ?? t("picker.placeholder")}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -83,11 +90,13 @@ export function DateTimePicker({
           mode="single"
           selected={parsedDate}
           onSelect={handleDaySelect}
+          locale={locale === "ar" ? arSA : undefined}
+          dir={locale === "ar" ? "rtl" : "ltr"}
         />
         <div className="border-t p-3 grid gap-3">
           <div className="grid gap-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
-              Time
+              {t("messages.time")}
             </Label>
             <Input
               type="time"
@@ -106,8 +115,8 @@ export function DateTimePicker({
                 setOpen(false);
               }}
             >
-              <X className="mr-1.5 size-3.5" />
-              Clear
+              <X className="me-1.5 size-3.5" />
+              {t("picker.clear")}
             </Button>
           ) : null}
         </div>

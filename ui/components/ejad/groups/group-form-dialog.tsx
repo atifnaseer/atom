@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { RequiredFormLabel } from "@/components/forms/required-form-label";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ export function GroupFormDialog({
   onOpenChange: (open: boolean) => void;
   onSaved: (group: ObjectGroup) => void;
 }) {
+  const { t } = useI18n();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", description: "" },
@@ -89,8 +91,8 @@ export function GroupFormDialog({
     onSuccess: (group) => {
       toast.success(
         target?.mode === "edit"
-          ? `Group “${group.name}” saved`
-          : `Group “${group.name}” created`,
+          ? t("groups.saved", { name: group.name })
+          : t("groups.created", { name: group.name }),
       );
       onSaved(group);
       onOpenChange(false);
@@ -100,16 +102,16 @@ export function GroupFormDialog({
 
   const title =
     target?.mode === "edit"
-      ? "Edit group"
+      ? t("groups.edit")
       : target?.parent
-        ? "Create subgroup"
-        : "Create group";
+        ? t("groups.createSubgroup")
+        : t("groups.create");
   const description =
     target?.mode === "edit"
-      ? "Change the group’s name and description."
+      ? t("groups.editHint")
       : target?.parent
-        ? `The new group is created inside “${target.parent.name}”.`
-        : "Groups organize the workspace’s devices and channels.";
+        ? t("groups.createInside", { name: target.parent.name })
+        : t("groups.createHint");
 
   return (
     <Dialog
@@ -135,11 +137,13 @@ export function GroupFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <RequiredFormLabel required>Name</RequiredFormLabel>
+                  <RequiredFormLabel required>
+                    {t("common.name")}
+                  </RequiredFormLabel>
                   <FormControl>
                     <Input
                       autoFocus
-                      placeholder="Building A"
+                      placeholder={t("groups.namePlaceholder")}
                       disabled={save.isPending}
                       {...field}
                     />
@@ -153,11 +157,11 @@ export function GroupFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>{t("common.description")}</FormLabel>
                   <FormControl>
                     <Textarea
                       rows={3}
-                      placeholder="Optional"
+                      placeholder={t("common.optional")}
                       disabled={save.isPending}
                       {...field}
                     />
@@ -173,14 +177,14 @@ export function GroupFormDialog({
                 disabled={save.isPending}
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={save.isPending}>
                 {save.isPending
-                  ? "Saving…"
+                  ? t("common.saving")
                   : target?.mode === "edit"
-                    ? "Save"
-                    : "Create group"}
+                    ? t("common.save")
+                    : t("groups.create")}
               </Button>
             </DialogFooter>
           </form>

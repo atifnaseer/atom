@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type * as React from "react";
 import { SessionRefresh } from "@/components/app-shell/session-refresh";
 import { TenantProvider } from "@/components/app-shell/tenant-provider";
 import { TenantSwitcher } from "@/components/app-shell/tenant-switcher";
 import { UserNav } from "@/components/app-shell/user-nav";
 import { BrandLogo } from "@/components/brand-logo";
+import { EnglishOnly, useI18n } from "@/components/ejad/i18n-provider";
 import { SidebarNav } from "@/components/ejad/sidebar-nav";
 import {
   Sidebar,
@@ -25,6 +27,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { BRAND_NAME } from "@/lib/brand";
+import { isEjadPath } from "@/lib/ejad/nav";
 
 export function AppShell({
   children,
@@ -37,18 +40,31 @@ export function AppShell({
   entityKind?: string;
   sessionExpiresAt: string;
 }) {
+  const { locale } = useI18n();
+  const pathname = usePathname();
+  // Atom's Administration pages are English only.
+  const content =
+    locale === "en" || isEjadPath(pathname) ? (
+      children
+    ) : (
+      <EnglishOnly>{children}</EnglishOnly>
+    );
   return (
     <TenantProvider>
       <SessionRefresh expiresAt={sessionExpiresAt} />
       <SidebarProvider>
-        <AppSidebar entityName={entityName} entityKind={entityKind} />
+        <AppSidebar
+          entityName={entityName}
+          entityKind={entityKind}
+          side={locale === "ar" ? "right" : "left"}
+        />
         <SidebarInset>
           <header className="flex h-12 shrink-0 items-center gap-2 px-3">
             <SidebarTrigger />
           </header>
           <main>
             <div className="mx-auto flex w-full flex-col gap-6 p-4 sm:p-6 lg:p-8">
-              {children}
+              {content}
             </div>
           </main>
         </SidebarInset>
@@ -60,12 +76,14 @@ export function AppShell({
 function AppSidebar({
   entityName,
   entityKind,
+  side,
 }: {
   entityName: string;
   entityKind?: string;
+  side: "left" | "right";
 }) {
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={side}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

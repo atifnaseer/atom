@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 import { StatusBadge } from "@/components/crud/status-badge";
 import { DisplayTimeCell } from "@/components/display-time";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -13,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { errorText } from "@/lib/ejad/errors";
 import { graphqlClient } from "@/lib/graphql/client";
 
 const OBJECT_AUDIT_QUERY = `
@@ -43,9 +45,10 @@ type AuditResponse = {
 const PAGE_SIZE = 10;
 
 export function EntityAuditLog({ entityId }: { entityId: string }) {
+  const { t } = useI18n();
   return (
     <ObjectAuditLog
-      emptyLabel="No audit logs for this entity."
+      emptyLabel={t("audit.emptyEntity")}
       targetId={entityId}
       targetKind="entity"
     />
@@ -55,12 +58,13 @@ export function EntityAuditLog({ entityId }: { entityId: string }) {
 export function ObjectAuditLog({
   targetId,
   targetKind,
-  emptyLabel = "No audit logs for this item.",
+  emptyLabel,
 }: {
   targetId: string;
   targetKind: string;
   emptyLabel?: string;
 }) {
+  const { t, locale, format } = useI18n();
   const [page, setPage] = React.useState(1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -83,7 +87,7 @@ export function ObjectAuditLog({
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-        {error.message}
+        {locale === "en" ? error.message : errorText(error, locale)}
       </div>
     );
   }
@@ -91,7 +95,7 @@ export function ObjectAuditLog({
   if (!isFetching && items.length === 0) {
     return (
       <div className="rounded-lg border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-        {emptyLabel}
+        {emptyLabel ?? t("audit.empty")}
       </div>
     );
   }
@@ -102,9 +106,9 @@ export function ObjectAuditLog({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Time</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Outcome</TableHead>
+              <TableHead>{t("messages.time")}</TableHead>
+              <TableHead>{t("audit.event")}</TableHead>
+              <TableHead>{t("audit.outcome")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -114,14 +118,18 @@ export function ObjectAuditLog({
                   colSpan={3}
                   className="text-center text-muted-foreground text-sm"
                 >
-                  Loading…
+                  {t("common.loadingEllipsis")}
                 </TableCell>
               </TableRow>
             ) : (
               items.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="text-xs">
-                    <DisplayTimeCell time={item.createdAt} />
+                    {locale === "en" ? (
+                      <DisplayTimeCell time={item.createdAt} />
+                    ) : (
+                      format.date(item.createdAt, "dateTimeSeconds")
+                    )}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {item.event}
@@ -139,7 +147,8 @@ export function ObjectAuditLog({
       {totalPages > 1 ? (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            Page {page} of {totalPages} · {total} total
+            {t("common.pageOf", { page, pages: totalPages })} ·{" "}
+            {t("audit.total", { count: total })}
           </span>
           <div className="flex gap-2">
             <Button
@@ -148,7 +157,7 @@ export function ObjectAuditLog({
               size="sm"
               variant="outline"
             >
-              Previous
+              {t("common.previous")}
             </Button>
             <Button
               disabled={page >= totalPages || isFetching}
@@ -156,7 +165,7 @@ export function ObjectAuditLog({
               size="sm"
               variant="outline"
             >
-              Next
+              {t("common.next")}
             </Button>
           </div>
         </div>

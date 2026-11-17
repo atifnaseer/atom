@@ -7,6 +7,7 @@ import type { ConnectionRow } from "@/components/ejad/connections/use-connection
 import { CopyButton } from "@/components/ejad/copy-button";
 import { deviceKeyAction } from "@/components/ejad/devices/device-keys-client";
 import { toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +44,7 @@ export function DeviceCommands({
   channelRoute: string;
   endpoints: MessagingEndpoints;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const { can } = useAccess();
   const canReveal = can("manage");
@@ -84,19 +86,19 @@ export function DeviceCommands({
     ? [
         {
           id: "pub",
-          title: "Publish over MQTT",
+          title: t("commands.mqttPub"),
           value: commands.mqttPub,
           allowed: row?.publish,
         },
         {
           id: "sub",
-          title: "Subscribe over MQTT",
+          title: t("commands.mqttSub"),
           value: commands.mqttSub,
           allowed: row?.subscribe,
         },
         {
           id: "curl",
-          title: "Publish over HTTP",
+          title: t("commands.httpPub"),
           value: commands.curl,
           allowed: row?.publish,
         },
@@ -108,20 +110,19 @@ export function DeviceCommands({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Terminal className="size-4" />
-          Device commands
+          {t("commands.title")}
         </CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-4">
         {devices && available.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {" "}
-            Connect a device to this channel to get commands for it.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("commands.none")}</p>
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-3">
               <div className="grid min-w-56 gap-2">
-                <Label htmlFor="commands-device">Device</Label>
+                <Label htmlFor="commands-device">
+                  {t("page.device.title")}
+                </Label>
                 <Select
                   value={deviceId}
                   onValueChange={(value) => {
@@ -130,7 +131,7 @@ export function DeviceCommands({
                   }}
                 >
                   <SelectTrigger id="commands-device" className="w-full">
-                    <SelectValue placeholder="Select a device" />
+                    <SelectValue placeholder={t("send.selectDevice")} />
                   </SelectTrigger>
                   <SelectContent>
                     {available.map((r) => (
@@ -144,7 +145,7 @@ export function DeviceCommands({
               {!canReveal ? null : key ? (
                 <Button variant="outline" onClick={() => setKey(null)}>
                   <EyeOff />
-                  Hide secret
+                  {t("commands.hide")}
                 </Button>
               ) : (
                 <Button
@@ -153,17 +154,25 @@ export function DeviceCommands({
                   onClick={() => reveal.mutate()}
                 >
                   <Eye />
-                  {reveal.isPending ? "Revealing…" : "Reveal secret"}
+                  {reveal.isPending
+                    ? t("commands.revealing")
+                    : t("commands.reveal")}
                 </Button>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Topic <code className="font-mono">{commands?.topic}</code>.{" "}
+              {t("commands.topic")}{" "}
+              <code className="font-mono" dir="ltr">
+                {commands?.topic}
+              </code>
+              .{" "}
               {key
-                ? "The commands include the device secret; treat them as a password."
+                ? t("commands.includesSecret")
                 : canReveal
-                  ? `The secret is shown as ${KEY_PLACEHOLDER} until you reveal it. Revealing is recorded in the audit log.`
-                  : `The secret is shown as ${KEY_PLACEHOLDER}; only workspace Admins and Operators can reveal device secrets.`}
+                  ? t("commands.placeholder", { placeholder: KEY_PLACEHOLDER })
+                  : t("commands.placeholderReadOnly", {
+                      placeholder: KEY_PLACEHOLDER,
+                    })}
             </p>
             {entries.map((entry) => (
               <div key={entry.id} className="grid gap-1.5">
@@ -171,8 +180,8 @@ export function DeviceCommands({
                   <span className="text-sm font-medium">
                     {entry.title}
                     {entry.allowed === false && (
-                      <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        (this device is not connected for this)
+                      <span className="ms-2 text-xs font-normal text-muted-foreground">
+                        ({t("commands.notConnected")})
                       </span>
                     )}
                   </span>
@@ -180,10 +189,13 @@ export function DeviceCommands({
                     value={entry.value}
                     size="icon"
                     variant="ghost"
-                    label={`Copy ${entry.title.toLowerCase()} command`}
+                    label={t("commands.copy", { title: entry.title })}
                   />
                 </div>
-                <pre className="overflow-x-auto rounded-md border bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap break-all">
+                <pre
+                  dir="ltr"
+                  className="overflow-x-auto rounded-md border bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap break-all"
+                >
                   {entry.value}
                 </pre>
               </div>

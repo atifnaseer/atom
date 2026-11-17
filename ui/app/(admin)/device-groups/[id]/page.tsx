@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { GroupDetailView } from "@/components/ejad/groups/group-detail-view";
 import { NoWorkspace } from "@/components/ejad/no-workspace";
+import { getI18n } from "@/lib/ejad/i18n/server";
 import { getServerWorkspaceId } from "@/lib/ejad/workspace";
 
-export const metadata: Metadata = { title: "Group" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("page.group.title") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function DeviceGroupPage({
@@ -16,12 +20,7 @@ export default async function DeviceGroupPage({
     getServerWorkspaceId(),
   ]);
   if (!workspaceId) {
-    return (
-      <NoWorkspace
-        title="Group"
-        description="A group’s devices, channels and subgroups."
-      />
-    );
+    return <NoWorkspace page="group" />;
   }
   return <GroupDetailView key={id} groupId={id} workspaceId={workspaceId} />;
 }

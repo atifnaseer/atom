@@ -1,11 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Eye, KeyRound, Plus, RefreshCw, Trash2 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
-import { StatusBadge } from "@/components/crud/status-badge";
 import {
   deviceKeyAction,
   listDeviceKeys,
@@ -15,6 +13,8 @@ import {
   type ShownKey,
 } from "@/components/ejad/devices/shared-key-dialog";
 import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,12 +35,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Credential, SharedKey } from "@/lib/ejad/devices";
+import type { MessageKey } from "@/lib/ejad/i18n/messages";
 
-const KIND_LABELS: Record<string, string> = {
-  shared_key: "Secret (shared key)",
-  password: "Password",
-  access_token: "Access token",
-  certificate: "Certificate",
+const KIND_KEYS: Record<string, MessageKey> = {
+  shared_key: "credentials.kind.sharedKey",
+  password: "auth.password",
+  access_token: "credentials.kind.accessToken",
+  certificate: "credentials.kind.certificate",
 };
 
 type Confirm = { action: "rotate" | "revoke"; credential: Credential };
@@ -58,6 +59,7 @@ export function DeviceCredentials({
   deviceName: string;
   readOnly: boolean;
 }) {
+  const { t, format } = useI18n();
   const queryClient = useQueryClient();
   const queryKey = ["ejad-device-credentials", deviceId];
   const [shown, setShown] = React.useState<ShownKey | null>(null);
@@ -85,7 +87,7 @@ export function DeviceCredentials({
   function showNewKey(sharedKey: SharedKey, title: string) {
     setShown({
       title,
-      description: `New secret for “${deviceName}”. The device authenticates with it, for example with the HTTP header “Authorization: Client <secret>”.`,
+      description: t("credentials.newHint", { name: deviceName }),
       key: sharedKey.key,
       once: true,
     });
@@ -96,7 +98,7 @@ export function DeviceCredentials({
       (await deviceKeyAction(deviceId, "create")).sharedKey,
     onSuccess: (sharedKey) => {
       refresh();
-      showNewKey(sharedKey, "Secret created");
+      showNewKey(sharedKey, t("credentials.created"));
     },
     onError: (err) => toastError(err),
   });
@@ -107,8 +109,11 @@ export function DeviceCredentials({
     onSuccess: (sharedKey) => {
       queryClient.invalidateQueries({ queryKey: ["object-audit"] });
       setShown({
-        title: "Device secret",
-        description: `Secret ${shortId(sharedKey.credentialId)} of “${deviceName}”. Revealing a secret is recorded in the audit log.`,
+        title: t("credentials.revealTitle"),
+        description: t("credentials.revealHint", {
+          id: shortId(sharedKey.credentialId),
+          name: deviceName,
+        }),
         key: sharedKey.key,
         once: false,
       });
@@ -131,15 +136,15 @@ export function DeviceCredentials({
       setConfirm(null);
       refresh();
       if (!result) {
-        toast.success("Secret revoked");
+        toast.success(t("credentials.revoked"));
         return;
       }
       if (result.revokeError) {
         toast.warning(
-          `A new secret was created, but the old one was not revoked: ${result.revokeError}`,
+          t("credentials.revokeFailed", { error: result.revokeError }),
         );
       }
-      showNewKey(result.sharedKey, "Secret rotated");
+      showNewKey(result.sharedKey, t("credentials.rotated"));
     },
     onError: (err) => toastError(err),
   });
@@ -149,8 +154,8 @@ export function DeviceCredentials({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           {activeKeys === 0
-            ? "This device has no active secret and cannot authenticate."
-            : `${activeKeys} active secret${activeKeys === 1 ? "" : "s"}.`}
+            ? t("credentials.none")
+            : t("credentials.active", { count: activeKeys })}
         </p>
         <Button
           size="sm"
@@ -158,23 +163,25 @@ export function DeviceCredentials({
           disabled={readOnly || create.isPending}
         >
           <Plus />
-          {create.isPending ? "Creating…" : "Create secret"}
+          {create.isPending ? t("common.creating") : t("credentials.create")}
         </Button>
       </div>
 
       {error ? (
-        <ErrorAlert title="Could not load secrets" error={error} />
+        <ErrorAlert title={t("credentials.loadFailed")} error={error} />
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Credential</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("credentials.credential")}</TableHead>
+                <TableHead>{t("common.type")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead>{t("common.created")}</TableHead>
+                <TableHead>{t("credentials.expires")}</TableHead>
+                <TableHead className="text-end">
+                  {t("common.actions")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,7 +191,7 @@ export function DeviceCredentials({
                     colSpan={6}
                     className="text-center text-sm text-muted-foreground"
                   >
-                    Loading…
+                    {t("common.loadingEllipsis")}
                   </TableCell>
                 </TableRow>
               ) : credentials.length === 0 ? (
@@ -193,7 +200,7 @@ export function DeviceCredentials({
                     colSpan={6}
                     className="text-center text-sm text-muted-foreground"
                   >
-                    No credentials.
+                    {t("credentials.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -215,21 +222,20 @@ export function DeviceCredentials({
                         </span>
                       </TableCell>
                       <TableCell>
-                        {KIND_LABELS[credential.kind] ?? credential.kind}
+                        {KIND_KEYS[credential.kind]
+                          ? t(KIND_KEYS[credential.kind])
+                          : credential.kind}
                       </TableCell>
                       <TableCell>
                         <StatusBadge value={credential.status} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {format(
-                          new Date(credential.createdAt),
-                          "d MMM yyyy, HH:mm",
-                        )}
+                        {format.date(credential.createdAt, "dateTime")}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {credential.expiresAt
-                          ? format(new Date(credential.expiresAt), "d MMM yyyy")
-                          : "Never"}
+                          ? format.date(credential.expiresAt)
+                          : t("common.never")}
                       </TableCell>
                       <TableCell>
                         {isKey && active ? (
@@ -241,7 +247,7 @@ export function DeviceCredentials({
                               onClick={() => reveal.mutate(credential)}
                             >
                               <Eye />
-                              Reveal
+                              {t("credentials.reveal")}
                             </Button>
                             <Button
                               size="sm"
@@ -252,7 +258,7 @@ export function DeviceCredentials({
                               }
                             >
                               <RefreshCw />
-                              Rotate
+                              {t("credentials.rotate")}
                             </Button>
                             <Button
                               size="sm"
@@ -264,7 +270,7 @@ export function DeviceCredentials({
                               }
                             >
                               <Trash2 />
-                              Revoke
+                              {t("credentials.revoke")}
                             </Button>
                           </div>
                         ) : null}
@@ -288,21 +294,21 @@ export function DeviceCredentials({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirm?.action === "rotate"
-                ? "Rotate this secret?"
-                : "Revoke this secret?"}
+                ? t("credentials.rotateTitle")
+                : t("credentials.revokeTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.action === "rotate"
-                ? "A new secret is created and the current one is revoked. The device must be updated with the new secret to keep connecting."
-                : "The device can no longer authenticate with this secret. This cannot be undone."}
+                ? t("credentials.rotateHint")
+                : t("credentials.revokeHint")}
               {confirm?.action === "revoke" && activeKeys === 1
-                ? " It is the device's only active secret."
+                ? ` ${t("credentials.onlyActive")}`
                 : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={act.isPending}>
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
@@ -313,10 +319,10 @@ export function DeviceCredentials({
               }}
             >
               {act.isPending
-                ? "Working…"
+                ? t("common.working")
                 : confirm?.action === "rotate"
-                  ? "Rotate secret"
-                  : "Revoke secret"}
+                  ? t("credentials.rotateAction")
+                  : t("credentials.revokeAction")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

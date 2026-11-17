@@ -14,6 +14,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useChannelConnections } from "@/components/ejad/connections/use-connections";
 import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
+import { useI18n, useT } from "@/components/ejad/i18n-provider";
 import { DeviceCommands } from "@/components/ejad/messages/device-commands";
 import { SendMessageDialog } from "@/components/ejad/messages/send-message-dialog";
 import {
@@ -85,6 +86,7 @@ export function ChannelMessages({
   channelRoute: string | null;
   endpoints: MessagingEndpoints;
 }) {
+  const { t, format: fmt, localize } = useI18n();
   const [draft, setDraft] = React.useState<MessageFilters>(EMPTY_FILTERS);
   const [applied, setApplied] = React.useState<MessageFilters>(EMPTY_FILTERS);
   const [filterError, setFilterError] = React.useState<string | null>(null);
@@ -134,7 +136,7 @@ export function ChannelMessages({
   function apply(next = draft) {
     const result = filtersToParams(next);
     if (typeof result === "string") {
-      setFilterError(result);
+      setFilterError(localize(result));
       return;
     }
     setFilterError(null);
@@ -159,14 +161,16 @@ export function ChannelMessages({
       );
       if (result.truncated)
         toast.warning(
-          `Downloaded the newest ${result.messages.length.toLocaleString()} of ${result.total.toLocaleString()} messages (limit ${CSV_MAX_ROWS.toLocaleString()}). Narrow the time range for the rest.`,
+          t("messages.csvTruncated", {
+            count: result.messages.length,
+            total: result.total,
+            limit: CSV_MAX_ROWS,
+          }),
         );
       else
-        toast.success(
-          `Downloaded ${result.messages.length.toLocaleString()} message${result.messages.length === 1 ? "" : "s"}.`,
-        );
+        toast.success(t("messages.csvDone", { count: result.messages.length }));
     } catch (err) {
-      toastError(err, "Could not download messages");
+      toastError(err, t("messages.csvFailed"));
     } finally {
       setExporting(false);
     }
@@ -185,10 +189,13 @@ export function ChannelMessages({
             className={`size-2 rounded-full ${live ? "animate-pulse bg-emerald-500" : "bg-muted-foreground/40"}`}
             aria-hidden
           />
-          {live ? "Live, refreshing every 5 s" : "Paused"}
+          {live ? t("messages.live") : t("messages.paused")}
           {dataUpdatedAt > 0 && (
             <span className="hidden sm:inline">
-              · updated {format(new Date(dataUpdatedAt), "HH:mm:ss")}
+              ·{" "}
+              {t("messages.updatedAt", {
+                time: fmt.date(dataUpdatedAt, "timeSeconds"),
+              })}
             </span>
           )}
           <Button
@@ -197,7 +204,7 @@ export function ChannelMessages({
             onClick={() => setLive((value) => !value)}
           >
             {live ? <Pause /> : <Play />}
-            {live ? "Pause" : "Resume"}
+            {live ? t("messages.pause") : t("messages.resume")}
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -207,12 +214,12 @@ export function ChannelMessages({
             disabled={!params || exporting || total === 0}
           >
             <Download />
-            {exporting ? "Preparing…" : "Download CSV"}
+            {exporting ? t("messages.preparing") : t("messages.downloadCsv")}
           </Button>
           {canSend ? (
             <Button onClick={() => setSending(true)}>
               <Send />
-              Send message
+              {t("send.title")}
             </Button>
           ) : null}
         </div>
@@ -228,16 +235,16 @@ export function ChannelMessages({
             }}
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Field label="Name" htmlFor="msg-name">
+              <Field label={t("common.name")} htmlFor="msg-name">
                 <Input
                   id="msg-name"
                   value={draft.name}
                   onChange={(e) => set("name", e.target.value)}
-                  placeholder="e.g. temperature"
+                  placeholder={t("messages.namePlaceholder")}
                   autoComplete="off"
                 />
               </Field>
-              <Field label="Publisher" htmlFor="msg-publisher">
+              <Field label={t("messages.publisher")} htmlFor="msg-publisher">
                 <Select
                   value={draft.publisher || ANY}
                   onValueChange={(v) => set("publisher", v === ANY ? "" : v)}
@@ -246,7 +253,9 @@ export function ChannelMessages({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ANY}>Any device</SelectItem>
+                    <SelectItem value={ANY}>
+                      {t("messages.anyDevice")}
+                    </SelectItem>
                     {(connections.data ?? []).map((row) => (
                       <SelectItem key={row.peerId} value={row.peerId}>
                         {row.peerLabel}
@@ -255,7 +264,7 @@ export function ChannelMessages({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Protocol" htmlFor="msg-protocol">
+              <Field label={t("messages.protocol")} htmlFor="msg-protocol">
                 <Select
                   value={draft.protocol || ANY}
                   onValueChange={(v) => set("protocol", v === ANY ? "" : v)}
@@ -264,7 +273,9 @@ export function ChannelMessages({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ANY}>Any protocol</SelectItem>
+                    <SelectItem value={ANY}>
+                      {t("messages.anyProtocol")}
+                    </SelectItem>
                     {PROTOCOLS.map((p) => (
                       <SelectItem key={p} value={p}>
                         {p}
@@ -273,7 +284,7 @@ export function ChannelMessages({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Value" htmlFor="msg-value">
+              <Field label={t("messages.value")} htmlFor="msg-value">
                 <div className="flex gap-2">
                   <Select
                     value={draft.comparator || ANY}
@@ -286,7 +297,7 @@ export function ChannelMessages({
                   >
                     <SelectTrigger
                       className="w-20 shrink-0"
-                      aria-label="Value comparator"
+                      aria-label={t("messages.comparator")}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -304,26 +315,29 @@ export function ChannelMessages({
                     inputMode="decimal"
                     value={draft.value}
                     onChange={(e) => set("value", e.target.value)}
-                    placeholder="number"
+                    placeholder={t("messages.number")}
                     autoComplete="off"
                   />
                 </div>
               </Field>
-              <Field label="From">
+              <Field label={t("messages.from")}>
                 <DateTimePicker
                   value={draft.from}
                   onChange={(v) => set("from", v)}
-                  placeholder="Any time"
+                  placeholder={t("messages.anyTime")}
                 />
               </Field>
-              <Field label="To">
+              <Field label={t("messages.to")}>
                 <DateTimePicker
                   value={draft.to}
                   onChange={(v) => set("to", v)}
-                  placeholder="Now"
+                  placeholder={t("messages.now")}
                 />
               </Field>
-              <Field label="Aggregation" htmlFor="msg-aggregation">
+              <Field
+                label={t("messages.aggregation")}
+                htmlFor="msg-aggregation"
+              >
                 <Select
                   value={draft.aggregation || ANY}
                   onValueChange={(v) =>
@@ -337,7 +351,7 @@ export function ChannelMessages({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ANY}>None</SelectItem>
+                    <SelectItem value={ANY}>{t("common.none")}</SelectItem>
                     {MESSAGE_AGGREGATIONS.map((a) => (
                       <SelectItem key={a} value={a}>
                         {a.toUpperCase()}
@@ -346,7 +360,7 @@ export function ChannelMessages({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Interval" htmlFor="msg-interval">
+              <Field label={t("messages.interval")} htmlFor="msg-interval">
                 <Select
                   value={draft.interval}
                   onValueChange={(v) => set("interval", v)}
@@ -367,7 +381,7 @@ export function ChannelMessages({
             </div>
             {draft.aggregation && (!draft.from || !draft.to) && (
               <p className="text-xs text-muted-foreground">
-                Aggregation needs both a From and a To time.
+                {t("messages.aggregationNeeds")}
               </p>
             )}
             {filterError && (
@@ -376,14 +390,17 @@ export function ChannelMessages({
               </p>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="submit">Apply filters</Button>
+              <Button type="submit">{t("messages.apply")}</Button>
               <Button type="button" variant="ghost" onClick={reset}>
                 <RotateCcw />
-                Reset
+                {t("messages.reset")}
               </Button>
               {aggregated && (
                 <Badge variant="secondary" className="self-center">
-                  {applied.aggregation.toUpperCase()} per {applied.interval}
+                  {t("messages.per", {
+                    aggregation: applied.aggregation.toUpperCase(),
+                    interval: applied.interval,
+                  })}
                 </Badge>
               )}
             </div>
@@ -392,20 +409,26 @@ export function ChannelMessages({
       </Card>
 
       {error ? (
-        <ErrorAlert title="Could not load messages" error={error} />
+        <ErrorAlert title={t("messages.loadFailed")} error={error} />
       ) : (
         <div className="rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{aggregated ? "Interval start" : "Time"}</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">
-                  {aggregated ? applied.aggregation.toUpperCase() : "Value"}
+                <TableHead>
+                  {aggregated
+                    ? t("messages.intervalStart")
+                    : t("messages.time")}
                 </TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Publisher</TableHead>
-                <TableHead>Protocol</TableHead>
+                <TableHead>{t("common.name")}</TableHead>
+                <TableHead className="text-end">
+                  {aggregated
+                    ? applied.aggregation.toUpperCase()
+                    : t("messages.value")}
+                </TableHead>
+                <TableHead>{t("messages.unit")}</TableHead>
+                <TableHead>{t("messages.publisher")}</TableHead>
+                <TableHead>{t("messages.protocol")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -415,7 +438,7 @@ export function ChannelMessages({
                     colSpan={6}
                     className="h-24 text-center text-sm text-muted-foreground"
                   >
-                    Loading messages…
+                    {t("messages.loading")}
                   </TableCell>
                 </TableRow>
               ) : rows.length === 0 ? (
@@ -449,7 +472,7 @@ export function ChannelMessages({
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <span>Rows per page</span>
+          <span>{t("table.rowsPerPage")}</span>
           <Select
             value={String(pageSize)}
             onValueChange={(v) => {
@@ -457,7 +480,10 @@ export function ChannelMessages({
               setPage(0);
             }}
           >
-            <SelectTrigger className="h-8 w-20" aria-label="Rows per page">
+            <SelectTrigger
+              className="h-8 w-20"
+              aria-label={t("table.rowsPerPage")}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -472,27 +498,27 @@ export function ChannelMessages({
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">
             {total === 0
-              ? "No messages"
-              : `${first.toLocaleString()}–${last.toLocaleString()} of ${total.toLocaleString()}`}
-            {isFetching && !isPending ? " · refreshing" : ""}
+              ? t("messages.none")
+              : t("common.rangeOf", { first, last, total })}
+            {isFetching && !isPending ? ` · ${t("messages.refreshing")}` : ""}
           </span>
           <Button
             variant="outline"
             size="icon"
-            aria-label="Previous page"
+            aria-label={t("table.previousPage")}
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
           >
-            <ChevronLeft />
+            <ChevronLeft className="rtl:rotate-180" />
           </Button>
           <Button
             variant="outline"
             size="icon"
-            aria-label="Next page"
+            aria-label={t("table.nextPage")}
             disabled={page + 1 >= pageCount}
             onClick={() => setPage((p) => p + 1)}
           >
-            <ChevronRight />
+            <ChevronRight className="rtl:rotate-180" />
           </Button>
         </div>
       </div>
@@ -535,8 +561,9 @@ function Field({
 }
 
 function EmptyText({ filtered }: { filtered: boolean }) {
-  if (filtered) return "No messages match these filters.";
-  return "No messages stored yet. Messages are saved only when a rule in the rules engine routes this channel to a “Save SenML” output.";
+  const t = useT();
+  if (filtered) return t("messages.noMatches");
+  return t("messages.emptyHint");
 }
 
 function MessageRow({
@@ -546,21 +573,24 @@ function MessageRow({
   message: ReaderMessage;
   deviceName: string | undefined;
 }) {
+  const { t, format: fmt } = useI18n();
   const date = messageDate(message.time);
   return (
     <TableRow>
       <TableCell className="whitespace-nowrap font-mono text-xs">
-        {date ? format(date, "yyyy-MM-dd HH:mm:ss.SSS") : "—"}
+        {date ? fmt.date(date, "precise") : "—"}
       </TableCell>
       <TableCell>{message.name || "—"}</TableCell>
-      <TableCell className="text-right font-mono tabular-nums">
+      <TableCell className="text-end font-mono tabular-nums">
         {messageValue(message) || "—"}
       </TableCell>
       <TableCell>{message.unit || "—"}</TableCell>
       <TableCell className="max-w-56">
         {message.publisher ? (
           <span className="grid min-w-0">
-            <span className="truncate">{deviceName ?? "Unknown device"}</span>
+            <span className="truncate">
+              {deviceName ?? t("messages.unknownDevice")}
+            </span>
             <code className="truncate font-mono text-xs text-muted-foreground">
               {message.publisher}
             </code>

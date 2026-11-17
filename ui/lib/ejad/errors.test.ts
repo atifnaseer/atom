@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
-  ERROR_TEXT,
+  ERROR_CODES,
   errorCode,
   errorText,
   friendlyError,
   RequestError,
   requestError,
 } from "@/lib/ejad/errors";
+import { translate } from "@/lib/ejad/i18n/core";
 import { AtomGraphqlError } from "@/lib/graphql/client";
+
+const text = (code: (typeof ERROR_CODES)[number]) =>
+  translate("en", `error.${code}`);
 
 function atom(code: string | undefined, message = "boom", requestId?: string) {
   return new AtomGraphqlError([
@@ -20,14 +24,31 @@ function atom(code: string | undefined, message = "boom", requestId?: string) {
 
 describe("friendlyError", () => {
   it("maps every Atom error code to plain language", () => {
-    for (const code of Object.keys(ERROR_TEXT)) {
-      expect(friendlyError(atom(code)).message).toBe(ERROR_TEXT[code]);
+    for (const code of ERROR_CODES) {
+      expect(friendlyError(atom(code)).message).toBe(text(code));
     }
+  });
+
+  it("speaks Arabic when asked", () => {
+    expect(friendlyError(atom("FORBIDDEN"), "ar").message).toBe(
+      translate("ar", "error.FORBIDDEN"),
+    );
+    expect(friendlyError(new TypeError("Failed to fetch"), "ar").message).toBe(
+      translate("ar", "error.network"),
+    );
+  });
+
+  it("translates known server sentences into Arabic", () => {
+    const error = new RequestError("Select a workspace first.", 400);
+    expect(friendlyError(error, "ar").detail).toBe(
+      translate("ar", "server.selectWorkspace"),
+    );
+    expect(friendlyError(error, "en").detail).toBe("Select a workspace first.");
   });
 
   it("keeps Atom's wording for validation and conflicts", () => {
     const result = friendlyError(atom("CONFLICT", "alias already in use"));
-    expect(result.message).toBe(ERROR_TEXT.CONFLICT);
+    expect(result.message).toBe(text("CONFLICT"));
     expect(result.detail).toBe("Alias already in use.");
   });
 
@@ -60,7 +81,7 @@ describe("friendlyError", () => {
 
   it("uses the code an /api/ejad route forwarded", () => {
     const error = new RequestError("forbidden", 403, "FORBIDDEN");
-    expect(friendlyError(error).message).toBe(ERROR_TEXT.FORBIDDEN);
+    expect(friendlyError(error).message).toBe(text("FORBIDDEN"));
   });
 
   it("falls back to the HTTP status when no code came back", () => {
@@ -84,7 +105,7 @@ describe("friendlyError", () => {
 describe("errorText", () => {
   it("joins the message and detail", () => {
     expect(errorText(atom("BAD_REQUEST", "name is required"))).toBe(
-      `${ERROR_TEXT.BAD_REQUEST} Name is required.`,
+      `${text("BAD_REQUEST")} Name is required.`,
     );
   });
 });

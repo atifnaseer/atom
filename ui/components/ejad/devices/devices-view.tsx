@@ -6,7 +6,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import {
   CircleOff,
   CirclePlay,
@@ -18,7 +17,6 @@ import {
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
-import { StatusBadge } from "@/components/crud/status-badge";
 import { DeviceBulkUploadDialog } from "@/components/ejad/devices/device-bulk-upload-dialog";
 import {
   DeviceDeleteDialog,
@@ -36,7 +34,9 @@ import {
   useGroupFilter,
   useObjectGroups,
 } from "@/components/ejad/groups/use-object-groups";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { PageHeader } from "@/components/ejad/page-header";
+import { StatusBadge } from "@/components/ejad/status-badge";
 import { useAccess } from "@/components/ejad/use-access";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -121,6 +121,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const canManage = useAccess().can("manage");
+  const { t, format } = useI18n();
   const searchParams = useSearchParams();
   const page = positiveInt(searchParams.get(`${PARAM}.page`), 1);
   const limit = positiveInt(searchParams.get(`${PARAM}.limit`), 20);
@@ -151,7 +152,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
     () => [
       {
         accessorKey: "name",
-        header: "Name",
+        header: t("common.name"),
         cell: ({ row }) => (
           <Link
             href={`/devices/${row.original.id}`}
@@ -164,7 +165,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
       },
       {
         accessorKey: "externalId",
-        header: "External ID",
+        header: t("devices.externalId"),
         cell: ({ row }) =>
           row.original.externalId ? (
             <code className="font-mono text-xs">{row.original.externalId}</code>
@@ -174,7 +175,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
       },
       {
         id: "tags",
-        header: "Tags",
+        header: t("workspaces.tags"),
         cell: ({ row }) => {
           const tags = deviceTags(row.original);
           return tags.length ? (
@@ -186,12 +187,12 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
       },
       {
         accessorKey: "status",
-        header: "Status",
+        header: t("common.status"),
         cell: ({ row }) => <StatusBadge value={row.original.status} />,
       },
       {
         id: "groups",
-        header: "Group",
+        header: t("devices.group"),
         cell: ({ row }) => (
           <GroupBadges
             groupIds={memberGroupIds(row.original)}
@@ -201,17 +202,17 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
       },
       {
         accessorKey: "createdAt",
-        header: "Created",
+        header: t("common.created"),
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground">
-            {format(new Date(row.original.createdAt), "d MMM yyyy, HH:mm")}
+            {format.date(row.original.createdAt, "dateTime")}
           </span>
         ),
       },
       {
         id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        meta: { className: "w-12 text-right" },
+        header: () => <span className="sr-only">{t("common.actions")}</span>,
+        meta: { className: "w-12 text-end" },
         cell: ({ row }) => {
           const device = row.original;
           const enabled = isDeviceEnabled(device);
@@ -222,7 +223,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
                   variant="ghost"
                   size="icon"
                   className="size-8"
-                  aria-label={`Actions for ${device.name}`}
+                  aria-label={t("common.actionsFor", { name: device.name })}
                 >
                   <MoreVertical />
                 </Button>
@@ -232,7 +233,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
                   onSelect={() => router.push(`/devices/${device.id}`)}
                 >
                   <ExternalLink />
-                  Open
+                  {t("common.open")}
                 </DropdownMenuItem>
                 {canManage ? (
                   <>
@@ -241,7 +242,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
                       onSelect={() => setToggling(device)}
                     >
                       {enabled ? <CircleOff /> : <CirclePlay />}
-                      {enabled ? "Disable" : "Enable"}
+                      {enabled ? t("common.disable") : t("common.enable")}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -250,7 +251,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
                       onSelect={() => setDeleting(device)}
                     >
                       <Trash2 />
-                      Delete
+                      {t("common.delete")}
                     </DropdownMenuItem>
                   </>
                 ) : null}
@@ -260,16 +261,15 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         },
       },
     ],
-    [router, groupTree, canManage],
+    [router, groupTree, canManage, t, format],
   );
 
   const onCreated = (result: CreateDeviceResult) => {
     refresh();
     if (result.sharedKey) {
       setShownKey({
-        title: `Device “${result.device.name}” created`,
-        description:
-          "The device authenticates with this secret, for example with the HTTP header “Authorization: Client <secret>”.",
+        title: t("devices.created", { name: result.device.name }),
+        description: t("devices.secretHint"),
         key: result.sharedKey.key,
         once: true,
       });
@@ -281,8 +281,8 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
     <div className="grid grid-cols-1 gap-6">
       <PageHeader
         icon={Cpu}
-        title="Devices"
-        description="Register devices, manage their secrets, and connect them to channels."
+        title={t("page.devices.title")}
+        description={t("page.devices.description")}
         actions={
           canManage ? (
             <>
@@ -295,7 +295,7 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
 
       {error ? (
         <ErrorAlert
-          title="Could not load devices"
+          title={t("devices.loadFailed")}
           error={error}
           onRetry={() => refetch()}
         />
@@ -308,18 +308,18 @@ export function DevicesView({ workspaceId }: { workspaceId: string }) {
         page={page}
         limit={limit}
         paramKey={PARAM}
-        searchPlaceholder="Search by name, tag or external ID…"
+        searchPlaceholder={t("devices.search")}
         loading={isPending}
-        noResultsMessage="No devices match your search."
+        noResultsMessage={t("devices.noMatches")}
         emptyState={
           filtered || error ? undefined : (
             <EmptyState
               icon={Cpu}
-              title="No devices yet"
+              title={t("devices.emptyTitle")}
               description={
                 canManage
-                  ? "A device is a sensor, gateway or machine that sends and receives messages. Add one, or upload a CSV file to add many at once."
-                  : "A device is a sensor, gateway or machine that sends and receives messages. Ask a workspace admin to add one."
+                  ? t("devices.emptyHint")
+                  : t("devices.emptyHintReadOnly")
               }
               action={
                 canManage ? <DeviceCreateDialog onCreated={onCreated} /> : null

@@ -15,6 +15,7 @@ import {
   type ConnectionRow,
 } from "@/components/ejad/connections/use-connections";
 import { ErrorAlert, toastError } from "@/components/ejad/error-alert";
+import { useI18n } from "@/components/ejad/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,10 +45,15 @@ export function ConnectionBadges({
   publish: boolean;
   subscribe: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <span className="flex flex-wrap gap-1">
-      {publish ? <Badge variant="secondary">Publish</Badge> : null}
-      {subscribe ? <Badge variant="outline">Subscribe</Badge> : null}
+      {publish ? (
+        <Badge variant="secondary">{t("connections.publish")}</Badge>
+      ) : null}
+      {subscribe ? (
+        <Badge variant="outline">{t("connections.subscribe")}</Badge>
+      ) : null}
     </span>
   );
 }
@@ -80,9 +86,9 @@ export function ConnectionsTab({
   readOnly?: boolean;
   onConnect: () => void;
 }) {
+  const { t } = useI18n();
   const [disconnecting, setDisconnecting] =
     React.useState<ConnectionRow | null>(null);
-  const peerNoun = side === "device" ? "channel" : "device";
   const peerHref = (id: string) =>
     side === "device" ? `/channels/${id}` : `/devices/${id}`;
 
@@ -91,11 +97,15 @@ export function ConnectionsTab({
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Link2 className="size-4" />
-          {side === "device" ? "Connected channels" : "Connected devices"}
+          {side === "device"
+            ? t("connections.connectedChannels")
+            : t("connections.connectedDevices")}
         </CardTitle>
         <Button size="sm" disabled={readOnly} onClick={onConnect}>
           <Plus />
-          {side === "device" ? "Connect to channel" : "Connect devices"}
+          {side === "device"
+            ? t("connections.connectToChannel")
+            : t("connections.connectDevices")}
         </Button>
       </CardHeader>
       <CardContent>
@@ -105,21 +115,23 @@ export function ConnectionsTab({
             <Skeleton className="h-9" />
           </div>
         ) : error ? (
-          <ErrorAlert title="Could not load connections" error={error} />
+          <ErrorAlert title={t("connections.loadFailed")} error={error} />
         ) : !rows?.length ? (
           <p className="text-sm text-muted-foreground">
             {side === "device"
-              ? "This device is not connected to any channel yet. Connect it so it can publish or subscribe to messages."
-              : "No devices are connected to this channel yet. Connect devices so they can publish or subscribe to its messages."}
+              ? t("connections.emptyDevice")
+              : t("connections.emptyChannel")}
           </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>
-                  {side === "device" ? "Channel" : "Device"}
+                  {side === "device"
+                    ? t("page.channel.title")
+                    : t("page.device.title")}
                 </TableHead>
-                <TableHead>Permissions</TableHead>
+                <TableHead>{t("connections.permissions")}</TableHead>
                 <TableHead className="w-0" />
               </TableRow>
             </TableHeader>
@@ -137,7 +149,11 @@ export function ConnectionsTab({
                         </Link>
                       ) : (
                         <span className="truncate font-mono text-xs text-muted-foreground">
-                          {row.peerId} (deleted {peerNoun})
+                          {row.peerId} (
+                          {side === "device"
+                            ? t("connections.deletedChannel")
+                            : t("connections.deletedDevice")}
+                          )
                         </span>
                       )}
                       {row.peerDetail ? (
@@ -161,7 +177,7 @@ export function ConnectionsTab({
                       onClick={() => setDisconnecting(row)}
                     >
                       <Unlink />
-                      Disconnect
+                      {t("connections.disconnect")}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -193,6 +209,7 @@ function DisconnectDialog({
   row: ConnectionRow | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [types, setTypes] = React.useState<ConnectionType[]>([]);
   React.useEffect(() => {
@@ -207,7 +224,7 @@ function DisconnectDialog({
         types,
       }),
     onSuccess: (result) => {
-      const { ok, message } = describeResult(result, "disconnect");
+      const { ok, message } = describeResult(result, "disconnect", t);
       (ok ? toast.success : toast.error)(message);
       queryClient.invalidateQueries({ queryKey: [CONNECTIONS_QUERY_KEY] });
       onOpenChange(false);
@@ -229,10 +246,14 @@ function DisconnectDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Disconnect “{deviceLabel}”?</DialogTitle>
+          <DialogTitle>
+            {t("connections.disconnectTitle", { name: deviceLabel })}
+          </DialogTitle>
           <DialogDescription>
-            Choose what device “{deviceLabel}” should no longer be allowed to do
-            on channel “{channelLabel}”. This takes effect immediately.
+            {t("connections.disconnectHint", {
+              device: deviceLabel,
+              channel: channelLabel,
+            })}
           </DialogDescription>
         </DialogHeader>
         {row ? (
@@ -250,14 +271,16 @@ function DisconnectDialog({
             disabled={remove.isPending}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="destructive"
             disabled={remove.isPending || types.length === 0}
             onClick={() => row && remove.mutate(row)}
           >
-            {remove.isPending ? "Disconnecting…" : "Disconnect"}
+            {remove.isPending
+              ? t("connections.disconnecting")
+              : t("connections.disconnect")}
           </Button>
         </DialogFooter>
       </DialogContent>
