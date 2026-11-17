@@ -211,6 +211,42 @@ describe("ensureWorkspaceRoles", () => {
     ]);
   });
 
+  it("takes policy.manage away from an older Operator role", async () => {
+    const atom = fakeAtom({
+      roles: [
+        ...COMPLETE_ROLES.filter((r) => r.name !== "workspace-operator"),
+        {
+          id: "r-operator",
+          name: "workspace-operator",
+          blocks: 1,
+          // The Phase 8 Operator block: everything but role.manage.
+          actions: [
+            "manage",
+            "read",
+            "write",
+            "delete",
+            "publish",
+            "subscribe",
+            "execute",
+            "policy.manage",
+          ],
+        },
+      ],
+    });
+    const ids = await ensureWorkspaceRoles(atom.gql, "t1");
+    expect(ids.operator).toBe("r-operator");
+    expect(atom.of(CREATE_ROLE_MUTATION)).toHaveLength(0);
+    const input = atom.of(CREATE_BLOCK_MUTATION)[0].variables?.input as {
+      actionIds: string[];
+    };
+    const actionIds = input.actionIds;
+    expect(actionIds).not.toContain("act-policy.manage");
+    expect(actionIds).toContain("act-manage");
+    expect(atom.of(DELETE_BLOCK_MUTATION).map((c) => c.variables?.id)).toEqual([
+      "r-operator-b0",
+    ]);
+  });
+
   it("finishes a role left without its block", async () => {
     const atom = fakeAtom({
       roles: [
@@ -232,7 +268,11 @@ describe("roles", () => {
     const [admin, operator, viewer] = WORKSPACE_ROLES;
     expect(admin.actions).toContain("role.manage");
     expect(operator.actions).not.toContain("role.manage");
-    expect(operator.actions).toContain("policy.manage");
+    // policy.manage adds members and assigns roles in Atom.
+    expect(operator.actions).not.toContain("policy.manage");
+    expect(operator.actions).toEqual(
+      expect.arrayContaining(["manage", "read", "write", "delete"]),
+    );
     // The message reader needs subscribe on the channel to read messages.
     expect(viewer.actions).toEqual(["read", "subscribe"]);
   });

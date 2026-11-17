@@ -78,7 +78,7 @@ describe("accessFromCheck", () => {
       platform: no,
       a_read: yes,
       a_manage: yes,
-      a_policy_manage: yes,
+      a_policy_manage: no,
       a_role_manage: no,
     });
     expect(access).toMatchObject({
@@ -88,6 +88,7 @@ describe("accessFromCheck", () => {
       role: "operator",
     });
     expect(access.can.members).toBe(false);
+    expect(access.can.connect).toBe(true);
   });
 
   it("treats missing answers as denied", () => {

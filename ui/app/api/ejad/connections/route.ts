@@ -7,6 +7,10 @@ import {
   disconnectMany,
   parseConnectionRequest,
 } from "@/lib/ejad/connections";
+import {
+  graphqlService,
+  ServiceTokenMissingError,
+} from "@/lib/ejad/service-graphql";
 import { AtomGraphqlError } from "@/lib/graphql/client";
 import { graphqlServer } from "@/lib/graphql/server";
 
@@ -84,14 +88,17 @@ async function handle(request: Request, mode: "connect" | "disconnect") {
   if (typeof parsed === "string") return bad(parsed);
 
   try {
-    if (mode === "connect") {
-      const problem = await checkTargets(tenantId, parsed);
-      if (problem) return bad(problem);
-    }
+    // Ownership is checked as the signed-in user, for both directions: the
+    // change below runs as the Ejad service and must stay in this workspace.
+    const problem = await checkTargets(tenantId, parsed);
+    if (problem) return bad(problem);
+    // Operators do not hold policy.manage (it would also let them add
+    // members and assign roles), so the grant itself is made by the Ejad
+    // service account, only after the role and ownership checks above.
     const result =
       mode === "connect"
-        ? await connectMany(graphqlServer, tenantId, parsed)
-        : await disconnectMany(graphqlServer, tenantId, parsed);
+        ? await connectMany(graphqlService, tenantId, parsed)
+        : await disconnectMany(graphqlService, tenantId, parsed);
     const allFailed = result.failed.length > 0 && result.changed === 0;
     return NextResponse.json(
       {
@@ -101,6 +108,12 @@ async function handle(request: Request, mode: "connect" | "disconnect") {
       { status: allFailed ? 502 : 200 },
     );
   } catch (error) {
+    if (error instanceof ServiceTokenMissingError) {
+      return NextResponse.json(
+        { message: error.message, code: "SERVICE_UNAVAILABLE" },
+        { status: 503 },
+      );
+    }
     if (error instanceof AtomGraphqlError) {
       const code = error.errors[0]?.extensions?.code ?? "";
       return NextResponse.json(

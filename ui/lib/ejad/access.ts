@@ -23,13 +23,15 @@ export const ABILITIES: Ability[] = ["view", "manage", "connect", "members"];
  * The Atom actions behind each ability, checked on the workspace (tenant)
  * object. They mirror the gates Atom puts on the matching mutations:
  * reads need `read`; resource update/delete and device keys need `manage`;
- * connections are a permission block plus a direct policy (`policy.manage`);
- * adding members needs `policy.manage` and creating roles `role.manage`.
+ * connecting is Operator work: `manage` here, and the connections route
+ * makes the Atom change (which needs `policy.manage`) as the Ejad service
+ * account; adding members needs `policy.manage` and roles `role.manage`,
+ * which only Admins hold.
  */
 export const ABILITY_ACTIONS: Record<Ability, string[]> = {
   view: ["read"],
   manage: ["manage"],
-  connect: ["policy.manage"],
+  connect: ["manage"],
   members: ["role.manage", "policy.manage"],
 };
 

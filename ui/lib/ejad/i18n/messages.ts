@@ -2145,6 +2145,22 @@ export const messages = {
     ar: "اضغط Enter لإضافة عدة {label}.",
   },
   "entityKind.human": { en: "human", ar: "مستخدم" },
+  "server.connectNotConfigured": {
+    en: "Connecting devices is not configured on this server.",
+    ar: "ربط الأجهزة غير مهيأ على هذا الخادم.",
+  },
+  "server.targetGone": {
+    en: "A selected device or channel no longer exists.",
+    ar: "أحد الأجهزة أو القنوات المختارة لم يعد موجودًا.",
+  },
+  "server.deviceElsewhere": {
+    en: "A selected device is not in this workspace.",
+    ar: "أحد الأجهزة المختارة لا يتبع مساحة العمل هذه.",
+  },
+  "server.channelElsewhere": {
+    en: "A selected channel is not in this workspace.",
+    ar: "إحدى القنوات المختارة لا تتبع مساحة العمل هذه.",
+  },
 } satisfies Messages;
 
 export type MessageKey = keyof typeof messages;

@@ -51,9 +51,13 @@ export const WORKSPACE_ROLES: WorkspaceRoleDefinition[] = [
     label: "Operator",
     description:
       "Ejad workspace Operator: devices, channels, connections, groups, dashboards and message storage; no members.",
-    // policy.manage is what Atom requires for connections; Ejad's routes
-    // keep Operators away from members (Atom uses the same action for both).
-    actions: ADMIN_ACTIONS.filter((action) => action !== "role.manage"),
+    // No policy.manage or role.manage: in Atom those add members and assign
+    // roles. Connections need policy.manage, so the connections route makes
+    // them as the Ejad service account after checking the Operator's role.
+    // ensureWorkspaceRoles replaces older Operator blocks that still had it.
+    actions: ADMIN_ACTIONS.filter(
+      (action) => action !== "role.manage" && action !== "policy.manage",
+    ),
   },
   {
     key: "viewer",

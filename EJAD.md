@@ -58,6 +58,14 @@ Rules:
   requirePlatformAdmin() from lib/ejad/access-server.ts; the browser hides
   buttons with useAccess() / <IfAllowed> (Atom's authzCheck on the
   workspace). Device keys go only through /api/ejad/devices/[id]/keys.
+- Operators have no `policy.manage` (Phase 9c): in Atom it also adds
+  members and assigns roles. Connections need it, so /api/ejad/connections
+  checks the role (`connect` = `manage`) and that every device and channel
+  is in the workspace as the user, then makes the change with the Ejad UI
+  service token `EJAD_ATOM_SERVICE_TOKEN` (lib/ejad/service-graphql.ts;
+  Magistrala's MG_ATOM_TOKEN_EJAD_UI). Use that token nowhere else, never
+  in the browser, never in logs. ensureWorkspaceRoles (run when an Admin
+  opens Members) replaces older Operator blocks that still had it.
 - UI conventions (Phase 9): every Ejad page starts with <PageHeader> (icon,
   title, one-line description, primary action on the right); an empty list
   shows <EmptyState> (what the thing is + the primary action, or who to ask);
