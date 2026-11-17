@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import type { StoreState } from "@/lib/ejad/store-rule";
+import type { StoreState } from "@/lib/ejad/store-messages";
 
 export const STORE_STATE_QUERY_KEY = "ejad-channel-store";
 
@@ -28,8 +28,8 @@ async function storeRequest(
 }
 
 /**
- * "Store messages": on = a rules-engine rule passes the channel's messages
- * to the SenML message store; off = no such rule.
+ * "Store messages": on = the channel is flagged (attributes.store_messages)
+ * and the ejad-store service saves its messages; off = the flag is removed.
  */
 export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
   const queryClient = useQueryClient();
@@ -71,8 +71,8 @@ export function StoreMessagesSwitch({ channelId }: { channelId: string }) {
             </Label>
             <p className="text-sm text-muted-foreground">
               {error
-                ? `Could not check the rules engine: ${error.message}`
-                : "Save messages published to this channel so they appear below. Uses a rules-engine rule with SenML storage."}
+                ? `Could not load the setting: ${error.message}`
+                : "Save messages published to this channel so they appear below."}
             </p>
           </div>
         </div>

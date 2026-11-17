@@ -28,8 +28,3 @@ export function messagingEndpoints(): MessagingEndpoints {
     mqttPort: Number.isInteger(port) && port > 0 ? port : 1883,
   };
 }
-
-/** Rules engine (re service) base URL (POST /{workspace}/rules). */
-export function rulesEngineUrl(): string {
-  return (process.env.MG_RE_URL ?? "http://localhost:9008").replace(/\/+$/, "");
-}
